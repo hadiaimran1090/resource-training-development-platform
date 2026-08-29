@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../api/authApi';
 import { authApi } from '../api/authApi';
+import { setMemoryToken } from '../api/apiClient';
 
 interface AuthContextType {
   user: User | null;
@@ -15,40 +16,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('rtdp_token'));
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('rtdp_token');
-      if (storedToken) {
-        try {
-          const currentUser = await authApi.getCurrentUser();
-          setUser(currentUser);
-          setToken(storedToken);
-        } catch (error) {
-          console.error('Session expired or invalid token:', error);
-          localStorage.removeItem('rtdp_token');
-          setUser(null);
-          setToken(null);
-        }
-      }
-      setIsLoading(false);
-    };
-
-    initializeAuth();
+    // Initial session load check
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
     const data = await authApi.login(email, password);
-    localStorage.setItem('rtdp_token', data.token);
+    
+    // Store token strictly in memory
+    setMemoryToken(data.token);
     setToken(data.token);
     setUser(data.user);
+    
     return data.user;
   };
 
   const logout = () => {
-    localStorage.removeItem('rtdp_token');
+    setMemoryToken(null);
     setToken(null);
     setUser(null);
   };

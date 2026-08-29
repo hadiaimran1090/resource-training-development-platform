@@ -1,3 +1,4 @@
+
 -- Seed Roles
 INSERT INTO roles (name, description) VALUES
     ('System Administrator', 'Full system control and administrative privileges'),
@@ -7,12 +8,12 @@ INSERT INTO roles (name, description) VALUES
     ('Mentor', 'Mentorship pairings, code reviews, and mock interviews'),
     ('Resource', 'Engineering resource learning and deployment readiness'),
     ('Management', 'Executive summary and strategic dashboard access')
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
--- Seed Regions
+-- Seed Regions (APAC, KSA, UAE, VSI)
 INSERT INTO regions (name, code, is_active) VALUES
-    ('Pakistan', 'PK', TRUE),
+    ('APAC', 'APAC', TRUE),
+    ('KSA', 'KSA', TRUE),
     ('UAE', 'UAE', TRUE),
-    ('Saudi Arabia', 'KSA', TRUE),
-    ('North America', 'NA', TRUE)
-ON CONFLICT (name) DO NOTHING;
+    ('VSI', 'VSI', TRUE)
+ON CONFLICT DO NOTHING;

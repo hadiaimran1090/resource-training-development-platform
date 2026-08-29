@@ -11,54 +11,27 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
-    // Read and run schema.sql from src/database directory
+    // 1. Run schema.sql (Creates tables)
     const schemaPath = path.resolve(process.cwd(), 'src/database/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
       await client.query(schemaSql);
     }
 
-    // 1. Seed Roles
-    const roles = [
-      { name: 'System Administrator', description: 'Full system control and administrative privileges' },
-      { name: 'Practice Lead', description: 'Practice oversight and resource management' },
-      { name: 'Regional Lead', description: 'Regional operations and bench monitoring' },
-      { name: 'Training Manager', description: 'Curriculum management and assessment tracking' },
-      { name: 'Mentor', description: 'Mentorship pairings, code reviews, and mock interviews' },
-      { name: 'Resource', description: 'Engineering resource learning and deployment readiness' },
-      { name: 'Management', description: 'Executive summary and strategic dashboard access' },
-    ];
-
-    for (const role of roles) {
-      await client.query(
-        `INSERT INTO roles (name, description) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
-        [role.name, role.description]
-      );
+    // 2. Run seed.sql (Static data: Roles, Regions)
+    const seedSqlPath = path.resolve(process.cwd(), 'src/database/seed.sql');
+    if (fs.existsSync(seedSqlPath)) {
+      const seedSql = fs.readFileSync(seedSqlPath, 'utf8');
+      await client.query(seedSql);
     }
 
-    // 2. Seed Regions
-    const regions = [
-      { name: 'Pakistan', code: 'PK' },
-      { name: 'UAE', code: 'UAE' },
-      { name: 'Saudi Arabia', code: 'KSA' },
-      { name: 'North America', code: 'NA' },
-    ];
-
-    for (const region of regions) {
-      await client.query(
-        `INSERT INTO regions (name, code, is_active) VALUES ($1, $2, TRUE) ON CONFLICT (name) DO NOTHING`,
-        [region.name, region.code]
-      );
-    }
-
-    // 3. Seed Default Admin User
+    // 3. Dynamic Admin User Creation with Password Hashing
     const adminEmail = 'admin@rtdp.com';
     const adminEmployeeId = 'RTDP-ADMIN-001';
-    const rawPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123';
+    const rawPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@786';
 
-    // Get Admin Role ID & Region ID
     const roleRes = await client.query(`SELECT id FROM roles WHERE name = $1`, ['System Administrator']);
-    const regionRes = await client.query(`SELECT id FROM regions WHERE name = $1`, ['Pakistan']);
+    const regionRes = await client.query(`SELECT id FROM regions WHERE name = $1`, ['APAC']);
 
     const adminRoleId = roleRes.rows[0]?.id;
     const adminRegionId = regionRes.rows[0]?.id;
@@ -92,7 +65,7 @@ export const seedDatabase = async () => {
     if (client) {
       try {
         client.release();
-      } catch { }
+      } catch {}
     }
   }
 };
