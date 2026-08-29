@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   User,
@@ -231,6 +232,8 @@ const managementSidebar: NavSection[] = [
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const currentPath = location.pathname;
 
   // Determine exact sidebar config based on current dashboard route
@@ -326,7 +329,13 @@ export const Sidebar: React.FC = () => {
           <HelpCircle className="w-4 h-4" />
           <span>Support</span>
         </button>
-        <button className="w-full flex items-center gap-3 text-slate-600 hover:text-rose-600 px-3 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold">
+        <button
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
+          className="w-full flex items-center gap-3 text-slate-600 hover:text-rose-600 px-3 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold"
+        >
           <LogOut className="w-4 h-4" />
           <span>Log Out</span>
         </button>

@@ -1,17 +1,17 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
+import routes from './routes/authRoutes.js';
+import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Health Check Endpoint
-app.get('/api/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'ok',
-    message: 'Server is running'
-  });
-});
+// API Routes
+app.use('/api', routes);
+
+// Error Handler Middleware
+app.use(errorHandler);
 
 export default app;
