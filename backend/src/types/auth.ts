@@ -40,3 +40,6 @@ export interface ApiResponse<T = any> {
   message: string;
   data?: T;
 }
+
+export const ACCESS_TOKEN_COOKIE = 'rtdp_access';
+export const REFRESH_TOKEN_COOKIE = 'rtdp_refresh';

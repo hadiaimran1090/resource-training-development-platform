@@ -1,52 +1,64 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../api/authApi';
 import { authApi } from '../api/authApi';
-import { setMemoryToken } from '../api/apiClient';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Initial session load check
-    setIsLoading(false);
+    // Check initial user authentication session via HttpOnly Cookie (/api/auth/me)
+    const initializeAuth = async () => {
+      try {
+        const currentUser = await authApi.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        // Try refreshing if token expired or initial load
+        try {
+          const refreshedUser = await authApi.refresh();
+          setUser(refreshedUser);
+        } catch {
+          setUser(null);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
-    const data = await authApi.login(email, password);
-    
-    // Store token strictly in memory
-    setMemoryToken(data.token);
-    setToken(data.token);
-    setUser(data.user);
-    
-    return data.user;
+    const loggedInUser = await authApi.login(email, password);
+    setUser(loggedInUser);
+    return loggedInUser;
   };
 
-  const logout = () => {
-    setMemoryToken(null);
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: !!user,
         isLoading,
         login,
         logout,

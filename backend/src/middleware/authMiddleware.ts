@@ -1,37 +1,72 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { AuthPayload } from '../types/auth.js';
+import { AuthService } from '../services/authService.js';
+import { AuthPayload, ACCESS_TOKEN_COOKIE } from '../types/auth.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthPayload;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'rtdp_super_secret_jwt_key_2026';
-
+/**
+ * JWT Authentication Middleware
+ * Reads Access Token from HttpOnly Cookie ('rtdp_access') or Bearer Header
+ */
 export const authenticateToken = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  // 1. Try HttpOnly cookie first, then fallback to Authorization header
+  let token = req.cookies?.[ACCESS_TOKEN_COOKIE];
+
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) {
     res.status(401).json({
       success: false,
-      message: 'Access denied. No token provided.',
+      message: 'Access denied. Authentication token required.',
     });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
-    req.user = decoded;
+    const payload = AuthService.verifyAccessToken(token);
+    req.user = payload;
     next();
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: 'Invalid or expired token.',
+      message: 'Access token expired or invalid.',
     });
   }
+};
+
+/**
+ * Role-Based Access Control (RBAC) Middleware
+ * Enforces role authorization on protected endpoints
+ */
+export const requireRoles = (...allowedRoles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized access.',
+      });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({
+        success: false,
+        message: `Forbidden: Requires one of [${allowedRoles.join(', ')}] roles.`,
+      });
+      return;
+    }
+
+    next();
+  };
 };

@@ -15,7 +15,6 @@ export interface LoginResponse {
   success: boolean;
   message: string;
   data: {
-    token: string;
     user: User;
   };
 }
@@ -27,12 +26,21 @@ export interface UserResponse {
 }
 
 export const authApi = {
-  login: async (email: string, password: string): Promise<LoginResponse['data']> => {
+  login: async (email: string, password: string): Promise<User> => {
     const response = await apiClient.post<LoginResponse>('/auth/login', {
       email,
       password,
     });
-    return response.data.data;
+    return response.data.data.user;
+  },
+
+  logout: async (): Promise<void> => {
+    await apiClient.post('/auth/logout');
+  },
+
+  refresh: async (): Promise<User> => {
+    const response = await apiClient.post<LoginResponse>('/auth/refresh');
+    return response.data.data.user;
   },
 
   getCurrentUser: async (): Promise<User> => {
