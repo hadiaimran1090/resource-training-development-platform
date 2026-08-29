@@ -185,7 +185,7 @@ const trainingManagerSidebar: NavSection[] = [
   {
     title: 'Requirements & Reports',
     items: [
-      { name: 'Role Profiles (skill requirements)', path: '/training-manager/dashboard#profiles', icon: UserPlus },
+      { name: 'Role Profiles', path: '/training-manager/dashboard#profiles', icon: UserPlus },
       { name: 'Effectiveness Reports', path: '/training-manager/dashboard#reports', icon: LineChart },
     ],
   },
@@ -256,36 +256,36 @@ export const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-white border-r border-slate-200 shadow-sm z-50 py-6 text-slate-700">
+    <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-white border-r border-slate-200 shadow-sm z-50 py-5 text-slate-700 overflow-x-hidden select-none">
       {/* Brand Header */}
-      <div className="px-6 mb-6 flex flex-col gap-1">
+      <div className="px-5 mb-5 flex flex-col gap-0.5 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 shrink-0">
             <span className="text-base font-extrabold">R</span>
           </div>
-          <h1 className="font-bold text-lg text-slate-900 tracking-tight">RTDP Global</h1>
+          <h1 className="font-bold text-lg text-slate-900 tracking-tight truncate">RTDP Global</h1>
         </div>
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider pl-11">
+        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider pl-11 truncate">
           Enterprise Resource
         </span>
       </div>
 
       {/* Quick Action Button */}
-      <div className="px-4 mb-6">
-        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2.5 px-4 font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2">
-          <Zap className="w-4 h-4 fill-white/20" />
-          Quick Training
+      <div className="px-3.5 mb-5 shrink-0">
+        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2.5 px-3 font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2">
+          <Zap className="w-4 h-4 fill-white/20 shrink-0" />
+          <span>Quick Training</span>
         </button>
       </div>
 
       {/* Navigation Sections */}
-      <nav className="flex-1 px-4 overflow-y-auto space-y-6">
+      <nav className="flex-1 px-3 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-5">
         {navSections.map((section) => (
           <div key={section.title}>
-            <div className="px-3 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="px-2 mb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
               {section.title}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const fullItemPath = item.path;
@@ -301,19 +301,19 @@ export const Sidebar: React.FC = () => {
                         (fullItemPath.includes('#') &&
                           currentPath + location.hash === fullItemPath);
 
-                      return `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      return `flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold transition-all overflow-hidden ${
                         isItemActive
                           ? 'bg-blue-50 text-blue-700 font-bold shadow-2xs'
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                       }`;
                     }}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate">{item.name}</span>
                     </div>
                     {isMainRoute && (
-                      <ChevronRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
+                      <ChevronRight className="w-3.5 h-3.5 opacity-40 shrink-0 ml-1" />
                     )}
                   </NavLink>
                 );
@@ -324,9 +324,9 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer Support / Logout */}
-      <div className="px-4 mt-auto pt-4 border-t border-slate-100 space-y-1">
-        <button className="w-full flex items-center gap-3 text-slate-600 hover:text-slate-900 px-3 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold">
-          <HelpCircle className="w-4 h-4" />
+      <div className="px-3.5 mt-auto pt-3 border-t border-slate-100 space-y-0.5 shrink-0">
+        <button className="w-full flex items-center gap-2.5 text-slate-600 hover:text-slate-900 px-2.5 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold">
+          <HelpCircle className="w-4 h-4 shrink-0" />
           <span>Support</span>
         </button>
         <button
@@ -334,9 +334,9 @@ export const Sidebar: React.FC = () => {
             logout();
             navigate('/login');
           }}
-          className="w-full flex items-center gap-3 text-slate-600 hover:text-rose-600 px-3 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold"
+          className="w-full flex items-center gap-2.5 text-slate-600 hover:text-rose-600 px-2.5 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 shrink-0" />
           <span>Log Out</span>
         </button>
       </div>
