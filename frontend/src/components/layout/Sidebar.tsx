@@ -8,6 +8,7 @@ import {
   Route,
   Calendar,
   FileCheck,
+  Briefcase,
   Code,
   CheckCircle,
   History,
@@ -93,6 +94,7 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Regional Lead Dashboard', path: '/regional-lead/dashboard', icon: LayoutDashboard },
+      { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
     ],
