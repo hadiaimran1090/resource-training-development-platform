@@ -113,19 +113,6 @@ export const UserManagementPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Seeded Accounts Password Info Banner */}
-      <div className="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-950 font-medium">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
-          <div>
-            <span className="font-bold text-blue-900">Seeded Test User Password:</span>{' '}
-            <code className="bg-blue-100 text-blue-900 px-2 py-0.5 rounded font-mono font-bold">Admin@786</code>
-            <p className="text-[11px] text-blue-700 font-normal mt-0.5">
-              All role test accounts (Practice Lead, Regional Lead, Training Manager, Mentor, Resource, Management) are ready to test login with this password.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">

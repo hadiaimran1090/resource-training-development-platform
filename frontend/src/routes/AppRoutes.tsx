@@ -13,11 +13,15 @@ import { MentorDashboard } from '../pages/mentor/MentorDashboard';
 import { UserManagementPage } from '../pages/admin/UserManagementPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
+  allowedRoles,
+  children,
+}) => {
   const { user } = useAuth();
-  const isAdmin = user?.roles?.includes('System Administrator') || user?.role === 'System Administrator';
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const hasAccess = userRoles.some((r) => allowedRoles.includes(r));
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <div className="p-12 text-center flex flex-col items-center justify-center gap-3 min-h-[60vh]">
         <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
@@ -25,7 +29,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
         <h2 className="text-lg font-extrabold text-slate-900">403 — Access Forbidden</h2>
         <p className="text-xs text-slate-500 max-w-md">
-          You do not have permission to view User Management. This module is restricted exclusively to System Administrators.
+          You do not have permission to view this module. Access is restricted to users with assigned role(s): [{allowedRoles.join(', ')}].
         </p>
       </div>
     );
@@ -66,21 +70,70 @@ const ProtectedLayout: React.FC = () => {
     <DashboardLayout>
       <Routes>
         <Route path="/" element={<RoleBasedDefaultRedirect />} />
-        <Route path="/management/dashboard" element={<ManagementDashboard />} />
-        <Route path="/practice-lead/dashboard" element={<PracticeLeadDashboard />} />
-        <Route path="/resource/dashboard" element={<ResourceDashboard />} />
-        <Route path="/regional-lead/dashboard" element={<RegionalLeadDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <AdminDashboard />
+            </RequireRole>
+          }
+        />
         <Route
           path="/admin/users"
           element={
-            <AdminRoute>
+            <RequireRole allowedRoles={['System Administrator']}>
               <UserManagementPage />
-            </AdminRoute>
+            </RequireRole>
           }
         />
-        <Route path="/training-manager/dashboard" element={<TrainingManagerDashboard />} />
-        <Route path="/mentor/dashboard" element={<MentorDashboard />} />
+        <Route
+          path="/regional-lead/dashboard"
+          element={
+            <RequireRole allowedRoles={['Regional Lead']}>
+              <RegionalLeadDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/practice-lead/dashboard"
+          element={
+            <RequireRole allowedRoles={['Practice Lead']}>
+              <PracticeLeadDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/training-manager/dashboard"
+          element={
+            <RequireRole allowedRoles={['Training Manager']}>
+              <TrainingManagerDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/mentor/dashboard"
+          element={
+            <RequireRole allowedRoles={['Mentor']}>
+              <MentorDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/management/dashboard"
+          element={
+            <RequireRole allowedRoles={['Management']}>
+              <ManagementDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/dashboard"
+          element={
+            <RequireRole allowedRoles={['Resource']}>
+              <ResourceDashboard />
+            </RequireRole>
+          }
+        />
         <Route path="*" element={<RoleBasedDefaultRedirect />} />
       </Routes>
     </DashboardLayout>
