@@ -36,6 +36,22 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Root Status Endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'RTDP Platform Backend API Server is Live & Running!',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
+    status: 'UP',
+    database: 'Connected',
+  });
+});
+
 // API Routes
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
