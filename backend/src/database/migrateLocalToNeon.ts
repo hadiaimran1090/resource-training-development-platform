@@ -119,16 +119,19 @@ export const migrateLocalToNeon = async () => {
     // 7. Assignments
     const asgRes = await localClient.query(`SELECT * FROM assignments`);
     for (const a of asgRes.rows) {
-      await neonClient.query(
-        `INSERT INTO assignments (id, resource_id, client_name, project_name, start_date, end_date, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (id) DO UPDATE SET
-           client_name = EXCLUDED.client_name,
-           project_name = EXCLUDED.project_name,
-           status = EXCLUDED.status,
-           updated_at = EXCLUDED.updated_at`,
-        [a.id, a.resource_id, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at]
-      );
+      const resCheck = await neonClient.query(`SELECT id FROM resources WHERE id = $1`, [a.resource_id]);
+      if (resCheck.rows.length > 0) {
+        await neonClient.query(
+          `INSERT INTO assignments (id, resource_id, client_name, project_name, start_date, end_date, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (id) DO UPDATE SET
+             client_name = EXCLUDED.client_name,
+             project_name = EXCLUDED.project_name,
+             status = EXCLUDED.status,
+             updated_at = EXCLUDED.updated_at`,
+          [a.id, a.resource_id, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at]
+        );
+      }
     }
     console.log(`Migrated ${asgRes.rows.length} assignments.`);
     await neonClient.query(`SELECT setval('assignments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assignments))`);
