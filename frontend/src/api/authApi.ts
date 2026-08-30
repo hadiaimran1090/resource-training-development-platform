@@ -5,7 +5,8 @@ export interface User {
   name: string;
   email: string;
   employeeId: string;
-  role: string;
+  roles: string[];
+  role?: string;
   region: string;
   profileImageUrl?: string | null;
   status: string;

@@ -1,3 +1,5 @@
+-- RTDP Database Schema
+-- Foundation: roles, regions, practices, users, user_roles, refresh_tokens
 
 -- 1. Create Roles Table
 CREATE TABLE IF NOT EXISTS roles (
@@ -14,15 +16,23 @@ CREATE TABLE IF NOT EXISTS regions (
     is_active BOOLEAN DEFAULT TRUE
 );
 
--- 3. Create Users Table
+-- 3. Create Practices Table
+CREATE TABLE IF NOT EXISTS practices (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    lead_user_id INT,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- 4. Create Users Table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     employee_id VARCHAR(30) UNIQUE NOT NULL,
-    role_id INT REFERENCES roles(id) ON DELETE SET NULL,
     region_id INT REFERENCES regions(id) ON DELETE SET NULL,
+    practice_id INT REFERENCES practices(id) ON DELETE SET NULL,
     profile_image_url VARCHAR(500),
     status VARCHAR(20) DEFAULT 'active',
     joining_date DATE,
@@ -30,15 +40,14 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Create Practices Table
-CREATE TABLE IF NOT EXISTS practices (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    lead_user_id INT REFERENCES users(id) ON DELETE SET NULL,
-    is_active BOOLEAN DEFAULT TRUE
+-- 5. Create User Roles Junction Table (Many-to-Many: Users <-> Roles)
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id INT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
 );
 
--- 5. Create Refresh Tokens Table (Production Token Rotation & Revocation)
+-- 6. Create Refresh Tokens Table (Production Token Rotation & Revocation)
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -53,7 +62,9 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 -- Indices for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 CREATE INDEX IF NOT EXISTS idx_users_region_id ON users(region_id);
+CREATE INDEX IF NOT EXISTS idx_users_practice_id ON users(practice_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);

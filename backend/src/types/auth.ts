@@ -4,7 +4,6 @@ export interface User {
   email: string;
   password_hash: string;
   employee_id: string;
-  role_id: number;
   region_id: number;
   profile_image_url?: string | null;
   status: string;
@@ -18,7 +17,8 @@ export interface UserDTO {
   name: string;
   email: string;
   employeeId: string;
-  role: string;
+  roles: string[];
+  role?: string;
   region: string;
   profileImageUrl?: string | null;
   status: string;
@@ -32,7 +32,8 @@ export interface LoginDTO {
 export interface AuthPayload {
   userId: number;
   email: string;
-  role: string;
+  roles: string[];
+  role?: string;
 }
 
 export interface ApiResponse<T = any> {

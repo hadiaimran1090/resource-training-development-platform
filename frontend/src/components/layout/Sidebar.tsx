@@ -141,7 +141,7 @@ const adminSidebar: NavSection[] = [
   {
     title: 'User & Access Control',
     items: [
-      { name: 'User Management', path: '/admin/dashboard#users', icon: UserCheck },
+      { name: 'User Management', path: '/admin/users', icon: UserCheck },
       { name: 'Roles', path: '/admin/dashboard#roles', icon: Shield },
       { name: 'Regions', path: '/admin/dashboard#regions', icon: Globe },
       { name: 'Practices', path: '/admin/dashboard#practices', icon: Building },

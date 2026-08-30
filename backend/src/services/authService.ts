@@ -65,12 +65,17 @@ export class AuthService {
         u.employee_id, 
         u.profile_image_url, 
         u.status,
-        r.name AS role_name, 
-        reg.name AS region_name
+        reg.name AS region_name,
+        COALESCE(
+          JSON_AGG(r.name) FILTER (WHERE r.name IS NOT NULL),
+          '[]'::json
+        ) AS roles
       FROM users u
-      LEFT JOIN roles r ON u.role_id = r.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN regions reg ON u.region_id = reg.id
       WHERE LOWER(u.email) = LOWER($1)
+      GROUP BY u.id, reg.id
     `;
 
     const result = await pool.query(query, [email.trim()]);
@@ -90,12 +95,16 @@ export class AuthService {
       throw new Error('Invalid email or password.');
     }
 
+    const roles: string[] = Array.isArray(row.roles) ? row.roles : (typeof row.roles === 'string' ? JSON.parse(row.roles) : []);
+    const primaryRole = roles[0] || 'Resource';
+
     const userDto: UserDTO = {
       id: row.id,
       name: row.name,
       email: row.email,
       employeeId: row.employee_id,
-      role: row.role_name || 'Resource',
+      roles,
+      role: primaryRole,
       region: row.region_name || 'Global',
       profileImageUrl: row.profile_image_url,
       status: row.status,
@@ -104,7 +113,8 @@ export class AuthService {
     const authPayload: AuthPayload = {
       userId: userDto.id,
       email: userDto.email,
-      role: userDto.role,
+      roles: userDto.roles,
+      role: primaryRole,
     };
 
     const accessToken = this.generateAccessToken(authPayload);
@@ -173,6 +183,7 @@ export class AuthService {
     const newPayload: AuthPayload = {
       userId: userDto.id,
       email: userDto.email,
+      roles: userDto.roles,
       role: userDto.role,
     };
 
@@ -224,12 +235,17 @@ export class AuthService {
         u.employee_id, 
         u.profile_image_url, 
         u.status,
-        r.name AS role_name, 
-        reg.name AS region_name
+        reg.name AS region_name,
+        COALESCE(
+          JSON_AGG(r.name) FILTER (WHERE r.name IS NOT NULL),
+          '[]'::json
+        ) AS roles
       FROM users u
-      LEFT JOIN roles r ON u.role_id = r.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN regions reg ON u.region_id = reg.id
       WHERE u.id = $1
+      GROUP BY u.id, reg.id
     `;
 
     const result = await pool.query(query, [userId]);
@@ -239,13 +255,16 @@ export class AuthService {
     }
 
     const row = result.rows[0];
+    const roles: string[] = Array.isArray(row.roles) ? row.roles : (typeof row.roles === 'string' ? JSON.parse(row.roles) : []);
+    const primaryRole = roles[0] || 'Resource';
 
     return {
       id: row.id,
       name: row.name,
       email: row.email,
       employeeId: row.employee_id,
-      role: row.role_name || 'Resource',
+      roles,
+      role: primaryRole,
       region: row.region_name || 'Global',
       profileImageUrl: row.profile_image_url,
       status: row.status,

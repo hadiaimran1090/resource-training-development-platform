@@ -26,18 +26,21 @@ export const LoginPage: React.FC = () => {
       setSubmitting(true);
       const loggedUser = await login(email, password);
 
-      // Redirect based on role or to root
-      if (loggedUser.role === 'System Administrator') {
+      const hasRole = (role: string) =>
+        loggedUser.roles?.includes(role) || loggedUser.role === role;
+
+      // Redirect based on role
+      if (hasRole('System Administrator')) {
         navigate('/admin/dashboard');
-      } else if (loggedUser.role === 'Practice Lead') {
+      } else if (hasRole('Practice Lead')) {
         navigate('/practice-lead/dashboard');
-      } else if (loggedUser.role === 'Regional Lead') {
+      } else if (hasRole('Regional Lead')) {
         navigate('/regional-lead/dashboard');
-      } else if (loggedUser.role === 'Training Manager') {
+      } else if (hasRole('Training Manager')) {
         navigate('/training-manager/dashboard');
-      } else if (loggedUser.role === 'Mentor') {
+      } else if (hasRole('Mentor')) {
         navigate('/mentor/dashboard');
-      } else if (loggedUser.role === 'Management') {
+      } else if (hasRole('Management')) {
         navigate('/management/dashboard');
       } else {
         navigate('/resource/dashboard');

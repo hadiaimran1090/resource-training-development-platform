@@ -59,7 +59,10 @@ export const requireRoles = (...allowedRoles: string[]) => {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const userRoles = req.user.roles || (req.user.role ? [req.user.role] : []);
+    const hasRole = userRoles.some((r) => allowedRoles.includes(r));
+
+    if (!hasRole) {
       res.status(403).json({
         success: false,
         message: `Forbidden: Requires one of [${allowedRoles.join(', ')}] roles.`,

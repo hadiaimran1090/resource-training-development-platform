@@ -10,7 +10,29 @@ import { RegionalLeadDashboard } from '../pages/regional-lead/RegionalLeadDashbo
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
 import { TrainingManagerDashboard } from '../pages/training-manager/TrainingManagerDashboard';
 import { MentorDashboard } from '../pages/mentor/MentorDashboard';
-import { Loader2 } from 'lucide-react';
+import { UserManagementPage } from '../pages/admin/UserManagementPage';
+import { Loader2, ShieldAlert } from 'lucide-react';
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('System Administrator') || user?.role === 'System Administrator';
+
+  if (!isAdmin) {
+    return (
+      <div className="p-12 text-center flex flex-col items-center justify-center gap-3 min-h-[60vh]">
+        <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-extrabold text-slate-900">403 — Access Forbidden</h2>
+        <p className="text-xs text-slate-500 max-w-md">
+          You do not have permission to view User Management. This module is restricted exclusively to System Administrators.
+        </p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 const ProtectedLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -36,6 +58,14 @@ const ProtectedLayout: React.FC = () => {
         <Route path="/resource/dashboard" element={<ResourceDashboard />} />
         <Route path="/regional-lead/dashboard" element={<RegionalLeadDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <UserManagementPage />
+            </AdminRoute>
+          }
+        />
         <Route path="/training-manager/dashboard" element={<TrainingManagerDashboard />} />
         <Route path="/mentor/dashboard" element={<MentorDashboard />} />
         <Route path="*" element={<Navigate to="/management/dashboard" replace />} />
