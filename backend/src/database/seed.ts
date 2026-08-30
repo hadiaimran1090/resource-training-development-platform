@@ -16,7 +16,7 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
-    // 1. Ensure Database Schema Exists (Run schema.sql DDL)
+    // 1. Ensure Database Schema Exists (Run schema.sql DDL if present)
     const possiblePaths = [
       path.resolve(process.cwd(), 'src/database/schema.sql'),
       path.resolve(process.cwd(), 'backend/src/database/schema.sql'),
@@ -32,19 +32,6 @@ export const seedDatabase = async () => {
           break;
         }
       } catch { }
-    }
-
-    if (!schemaSql) {
-      schemaSql = `
-        CREATE TABLE IF NOT EXISTS roles (id SERIAL PRIMARY KEY, name VARCHAR(50) UNIQUE NOT NULL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS regions (id SERIAL PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, code VARCHAR(20) UNIQUE NOT NULL, status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')), is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS practices (id SERIAL PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, description TEXT, lead_user_id INT, status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')), is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(150) NOT NULL, email VARCHAR(150) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, employee_id VARCHAR(30) UNIQUE NOT NULL, region_id INT REFERENCES regions(id) ON DELETE SET NULL, practice_id INT REFERENCES practices(id) ON DELETE SET NULL, profile_image_url TEXT, status VARCHAR(20) DEFAULT 'active', joining_date DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS user_roles (user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, role_id INT NOT NULL REFERENCES roles(id) ON DELETE CASCADE, PRIMARY KEY (user_id, role_id));
-        CREATE TABLE IF NOT EXISTS resources (id SERIAL PRIMARY KEY, user_id INT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE, region_id INT REFERENCES regions(id) ON DELETE SET NULL, practice_id INT REFERENCES practices(id) ON DELETE SET NULL, regional_lead_id INT REFERENCES users(id) ON DELETE SET NULL, designation VARCHAR(100) NOT NULL DEFAULT 'Engineering Resource', experience_years NUMERIC(4,1) DEFAULT 1.0, current_status VARCHAR(30) DEFAULT 'bench' CHECK (current_status IN ('assigned', 'bench', 'training')), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS assignments (id SERIAL PRIMARY KEY, resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE, client_name VARCHAR(150) NOT NULL, project_name VARCHAR(150), start_date DATE NOT NULL, end_date DATE, status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-        CREATE TABLE IF NOT EXISTS refresh_tokens (id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash VARCHAR(255) UNIQUE NOT NULL, expires_at TIMESTAMP NOT NULL, is_revoked BOOLEAN DEFAULT FALSE, replaced_by_token VARCHAR(255), user_agent VARCHAR(500), ip_address VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-      `;
     }
 
     if (schemaSql) {
