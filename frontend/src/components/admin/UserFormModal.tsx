@@ -54,16 +54,20 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           userApi.getRegions(),
           userApi.getPractices(),
         ]);
+        const safeRoles = Array.isArray(rolesData) ? rolesData : [];
+        const safeRegions = Array.isArray(regionsData) ? regionsData : [];
+        const safePractices = Array.isArray(practicesData) ? practicesData : [];
+
         // Deduplicate catalog arrays by name
-        const uniquePractices = practicesData.filter(
+        const uniquePractices = safePractices.filter(
           (p, index, self) => index === self.findIndex((t) => t.name === p.name)
         );
-        const uniqueRegions = regionsData.filter(
+        const uniqueRegions = safeRegions.filter(
           (r, index, self) => index === self.findIndex((t) => t.name === r.name)
         );
 
         // Strictly filter out System Administrator from client selection
-        setRoles(rolesData.filter((r) => r.name !== 'System Administrator'));
+        setRoles(safeRoles.filter((r) => r.name !== 'System Administrator'));
         setRegions(uniqueRegions);
         setPractices(uniquePractices);
       } catch (err: any) {
@@ -189,8 +193,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 md:p-6 pt-20 md:pt-24 pb-10 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
@@ -201,11 +205,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <h2 className="text-base font-bold text-slate-900">
                 {isEditMode ? 'Edit User Profile' : 'Create New System User'}
               </h2>
-              <p className="text-[11px] text-slate-500 font-medium">
-                {isEditMode
-                  ? `Modifying details for user #${userToEdit?.id}`
-                  : 'Add a user and assign role-based access'}
-              </p>
             </div>
           </div>
           <button

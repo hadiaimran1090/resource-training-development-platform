@@ -113,17 +113,26 @@ export const userApi = {
   },
 
   getRoles: async (): Promise<RoleCatalog[]> => {
-    const response = await apiClient.get<{ success: boolean; data: RoleCatalog[] }>('/roles');
-    return response.data.data;
+    const response = await apiClient.get('/roles');
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 
   getRegions: async (): Promise<RegionCatalog[]> => {
-    const response = await apiClient.get<{ success: boolean; data: RegionCatalog[] }>('/regions');
-    return response.data.data;
+    const response = await apiClient.get('/regions');
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 
   getPractices: async (): Promise<PracticeCatalog[]> => {
-    const response = await apiClient.get<{ success: boolean; data: PracticeCatalog[] }>('/practices');
-    return response.data.data;
+    const response = await apiClient.get('/practices');
+    const data = response.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 };
