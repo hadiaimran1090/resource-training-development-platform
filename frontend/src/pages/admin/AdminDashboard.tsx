@@ -29,22 +29,14 @@ const userDistData = [
 export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            System Administration
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Platform overview and management controls.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
-            Export Report
-          </button>
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
-            + Add User
-          </button>
-        </div>
+      {/* Header Actions */}
+      <div className="flex justify-end items-center gap-3 mb-2">
+        <button className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
+          Export Report
+        </button>
+        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
+          + Add User
+        </button>
       </div>
 
       {/* KPI Section */}

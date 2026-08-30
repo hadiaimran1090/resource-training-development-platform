@@ -1,11 +1,13 @@
 import React from 'react';
-import { Menu, Bell, Settings, Layers } from 'lucide-react';
+import { Menu, Layers } from 'lucide-react';
+import { ProfileDropdown } from './ProfileDropdown';
 
 interface TopNavbarProps {
   onToggleSidebar?: () => void;
+  onOpenProfile?: () => void;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar, onOpenProfile }) => {
   return (
     <nav className="md:hidden flex justify-between items-center w-full px-4 h-16 sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
       <div className="flex items-center gap-3">
@@ -23,19 +25,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
           <span className="font-bold text-base text-blue-600 tracking-tight">RTDP</span>
         </div>
       </div>
+
       <div className="flex items-center gap-2">
-        <button
-          aria-label="Notifications"
-          className="p-2 text-slate-500 hover:text-blue-600 transition-colors"
-        >
-          <Bell className="w-5 h-5" />
-        </button>
-        <button
-          aria-label="Settings"
-          className="p-2 text-slate-500 hover:text-blue-600 transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        <ProfileDropdown onOpenProfileModal={() => onOpenProfile && onOpenProfile()} />
       </div>
     </nav>
   );

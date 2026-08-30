@@ -45,4 +45,11 @@ router.patch(
   UserController.updateUserStatus
 );
 
+router.delete(
+  '/users/:id',
+  authenticateToken,
+  requireRoles('System Administrator'),
+  UserController.deleteUser
+);
+
 export default router;

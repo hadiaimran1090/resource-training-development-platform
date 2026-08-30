@@ -40,8 +40,6 @@ export const PracticeLeadDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="Practice Lead Dashboard"
-        subtitle="Global resource bench and development oversight."
         dateFilterText="Last 30 Days"
         onExport={() => alert('Exporting Practice Lead Report...')}
       />

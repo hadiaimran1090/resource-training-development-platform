@@ -17,11 +17,6 @@ import {
 export const MentorDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Welcome back, Mentor</h1>
-        <p className="text-xs text-slate-500 mt-1">Here's what's happening with your mentees today.</p>
-      </div>
 
       {/* KPI Section */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

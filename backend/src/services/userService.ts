@@ -358,6 +358,23 @@ export class UserService {
   }
 
   /**
+   * Delete User (Admin Only)
+   */
+  static async deleteUser(id: number, currentAdminUserId?: number): Promise<void> {
+    const userToDelete = await this.getUserById(id);
+
+    if (currentAdminUserId && id === currentAdminUserId) {
+      throw new Error('You cannot delete your own Administrator account.');
+    }
+
+    if (userToDelete.roles.includes('System Administrator')) {
+      throw new Error('System Administrator account cannot be deleted.');
+    }
+
+    await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+  }
+
+  /**
    * Catalog Queries
    */
   static async getRoles(): Promise<RoleCatalogDTO[]> {

@@ -186,4 +186,36 @@ export class AuthController {
       });
     }
   }
+
+  /**
+   * PUT /api/auth/profile
+   * Allows logged-in user to update their own password and profile image
+   */
+  static async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized access.',
+        });
+        return;
+      }
+
+      const { password, profileImageUrl } = req.body;
+      const updatedUser = await AuthService.updateProfile(userId, { password, profileImageUrl });
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedUser,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to update profile.',
+      });
+    }
+  }
 }

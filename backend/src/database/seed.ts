@@ -11,12 +11,13 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
-    // 1. Run schema.sql
     const schemaPath = path.resolve(process.cwd(), 'src/database/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
       await client.query(schemaSql);
     }
+    await client.query('ALTER TABLE users ALTER COLUMN profile_image_url TYPE TEXT;');
+    await client.query('DELETE FROM users WHERE email != $1;', ['admin@rtdp.com']);
 
     // 2. Unified Seed Data Initialization
     // A. Roles
@@ -84,7 +85,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Sarah Practice Lead',
-        email: 'practice.lead@rtdp.com',
+        email: 'sarah@rtdp.com',
         employeeId: 'RTDP-PL-001',
         roleNames: ['Practice Lead'],
         regionName: 'APAC',
@@ -92,7 +93,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Rohan Regional Lead',
-        email: 'regional.lead@rtdp.com',
+        email: 'rohan@rtdp.com',
         employeeId: 'RTDP-RL-001',
         roleNames: ['Regional Lead'],
         regionName: 'KSA',
@@ -100,7 +101,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Tania Training Manager',
-        email: 'training.manager@rtdp.com',
+        email: 'tania@rtdp.com',
         employeeId: 'RTDP-TM-001',
         roleNames: ['Training Manager'],
         regionName: 'UAE',
@@ -108,7 +109,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Michael Mentor',
-        email: 'mentor@rtdp.com',
+        email: 'michael@rtdp.com',
         employeeId: 'RTDP-MNT-001',
         roleNames: ['Mentor', 'Practice Lead'],
         regionName: 'VSI',
@@ -116,7 +117,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Rachel Resource',
-        email: 'resource@rtdp.com',
+        email: 'rachel@rtdp.com',
         employeeId: 'RTDP-RES-001',
         roleNames: ['Resource'],
         regionName: 'APAC',
@@ -124,7 +125,7 @@ export const seedDatabase = async () => {
       },
       {
         name: 'Marcus Management',
-        email: 'management@rtdp.com',
+        email: 'marcus@rtdp.com',
         employeeId: 'RTDP-MGMT-001',
         roleNames: ['Management'],
         regionName: 'APAC',

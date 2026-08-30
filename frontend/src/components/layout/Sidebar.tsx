@@ -37,7 +37,6 @@ import {
   Lightbulb,
   PieChart,
   Zap,
-  HelpCircle,
   LogOut,
   ChevronRight,
   X
@@ -348,10 +347,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
       {/* Footer Support / Logout */}
       <div className="px-3.5 mt-auto pt-3 border-t border-slate-100 space-y-0.5 shrink-0">
-        <button className="w-full flex items-center gap-2.5 text-slate-600 hover:text-slate-900 px-2.5 py-2 hover:bg-slate-50 transition-all rounded-lg text-xs font-semibold">
-          <HelpCircle className="w-4 h-4 shrink-0" />
-          <span>Support</span>
-        </button>
         <button
           onClick={() => {
             if (onMobileClose) onMobileClose();

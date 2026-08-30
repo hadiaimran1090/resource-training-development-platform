@@ -47,8 +47,6 @@ export const RegionalLeadDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        title="Regional Ops Dashboard"
-        subtitle="Resource & Bench Monitoring - North America"
         onExport={() => alert('Exporting Regional Ops Report...')}
       />
 

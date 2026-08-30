@@ -26,16 +26,8 @@ const readinessDonut = [
 export const ResourceDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-2">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Engineer Dashboard
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Welcome back, Alex. Here's your readiness overview.
-          </p>
-        </div>
+      {/* Header Actions */}
+      <div className="flex justify-end items-center mb-2">
         <div className="flex items-center gap-3">
           <button aria-label="Notifications" className="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative">
             <Bell className="w-5 h-5" />

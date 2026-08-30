@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     employee_id VARCHAR(30) UNIQUE NOT NULL,
     region_id INT REFERENCES regions(id) ON DELETE SET NULL,
     practice_id INT REFERENCES practices(id) ON DELETE SET NULL,
-    profile_image_url VARCHAR(500),
+    profile_image_url TEXT,
     status VARCHAR(20) DEFAULT 'active',
     joining_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

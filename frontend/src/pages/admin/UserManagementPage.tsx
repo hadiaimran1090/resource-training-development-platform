@@ -16,6 +16,7 @@ import {
   XCircle,
   Building,
   Globe,
+  Trash2,
 } from 'lucide-react';
 
 export const UserManagementPage: React.FC = () => {
@@ -33,12 +34,13 @@ export const UserManagementPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserDetail | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<number | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserDetail | null>(null);
 
   const fetchUsersAndRoles = async () => {
     try {
       setLoading(true);
       setError(null);
-
       const [usersData, rolesData] = await Promise.all([
         userApi.getUsers({
           search,
@@ -56,6 +58,20 @@ export const UserManagementPage: React.FC = () => {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      setDeletingUserId(userToDelete.id);
+      await userApi.deleteUser(userToDelete.id);
+      setUserToDelete(null);
+      await fetchUsersAndRoles();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to delete user.');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -307,6 +323,15 @@ export const UserManagementPage: React.FC = () => {
                             <Power className="w-4 h-4" />
                           )}
                         </button>
+                        {!user.roles?.includes('System Administrator') && (
+                          <button
+                            onClick={() => setUserToDelete(user)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -317,13 +342,53 @@ export const UserManagementPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Component */}
+      {/* User Form Modal */}
       <UserFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchUsersAndRoles}
         userToEdit={selectedUserForEdit}
       />
+
+      {/* Delete Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-slate-900">Delete User Account</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to permanently delete user <span className="font-bold text-slate-800">{userToDelete.name}</span> (<code className="bg-slate-100 px-1 rounded">{userToDelete.email}</code>)? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deletingUserId === userToDelete.id}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {deletingUserId === userToDelete.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete User</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

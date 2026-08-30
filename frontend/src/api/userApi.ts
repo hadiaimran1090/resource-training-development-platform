@@ -108,6 +108,10 @@ export const userApi = {
     return response.data.data;
   },
 
+  deleteUser: async (id: number): Promise<void> => {
+    await apiClient.delete<{ success: boolean; message: string }>(`/users/${id}`);
+  },
+
   getRoles: async (): Promise<RoleCatalog[]> => {
     const response = await apiClient.get<{ success: boolean; data: RoleCatalog[] }>('/roles');
     return response.data.data;

@@ -48,9 +48,7 @@ export const ManagementDashboard: React.FC = () => {
       {/* Header */}
       <PageHeader
         eyebrow="Read-Only View"
-        title="Executive Summary"
-        subtitle="Global workforce readiness and deployment velocity overview."
-        dateFilterText="Q3 2024 (To Date)"
+        dateFilterText="Q3 2026 (To Date)"
       />
 
       {/* KPI Cards Section */}

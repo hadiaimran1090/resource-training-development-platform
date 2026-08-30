@@ -137,6 +137,35 @@ export class UserController {
   }
 
   /**
+   * DELETE /api/users/:id
+   */
+  static async deleteUser(req: Request, res: Response): Promise<void> {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid user ID.',
+        });
+        return;
+      }
+
+      const currentAdminUserId = (req as AuthenticatedRequest).user?.userId;
+      await UserService.deleteUser(id, currentAdminUserId);
+
+      res.status(200).json({
+        success: true,
+        message: 'User deleted successfully',
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to delete user.',
+      });
+    }
+  }
+
+  /**
    * GET /api/roles
    */
   static async getRoles(_req: Request, res: Response): Promise<void> {

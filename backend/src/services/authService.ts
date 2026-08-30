@@ -270,4 +270,29 @@ export class AuthService {
       status: row.status,
     };
   }
+
+  /**
+   * Update current user profile (password & profile image)
+   */
+  static async updateProfile(
+    userId: number,
+    data: { password?: string; profileImageUrl?: string | null }
+  ): Promise<UserDTO> {
+    const { password, profileImageUrl } = data;
+
+    if (password && password.trim().length > 0) {
+      const passwordHash = await bcrypt.hash(password.trim(), 10);
+      await pool.query(
+        `UPDATE users SET password_hash = $1, profile_image_url = COALESCE($2, profile_image_url), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+        [passwordHash, profileImageUrl !== undefined ? profileImageUrl : null, userId]
+      );
+    } else if (profileImageUrl !== undefined) {
+      await pool.query(
+        `UPDATE users SET profile_image_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [profileImageUrl, userId]
+      );
+    }
+
+    return this.getCurrentUser(userId);
+  }
 }

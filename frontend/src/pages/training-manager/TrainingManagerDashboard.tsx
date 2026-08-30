@@ -19,16 +19,8 @@ import {
 export const TrainingManagerDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Training Manager Overview
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage tracks, monitor performance, and oversee learning objectives.
-          </p>
-        </div>
+      {/* Header Actions */}
+      <div className="flex justify-end items-center gap-4 mb-2">
         <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <PlusCircle className="w-4 h-4" />
           Create Training Track
