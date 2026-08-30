@@ -11,25 +11,17 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
 
-const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((url) => url.trim());
-
-// CORS configuration supporting HttpOnly credentials
+// Dynamic CORS configuration reflecting Vercel origins with credentials support
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Return origin directly to satisfy Access-Control-Allow-Origin + credentials
       if (!origin) return callback(null, true);
-      if (
-        clientUrls.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
-        process.env.NODE_ENV !== 'production'
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, true);
+      return callback(null, origin);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
 
