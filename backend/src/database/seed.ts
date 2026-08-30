@@ -11,7 +11,7 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
-    // 1. Run schema.sql (Creates clean tables with user_roles junction table)
+    // 1. Run schema.sql
     const schemaPath = path.resolve(process.cwd(), 'src/database/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');

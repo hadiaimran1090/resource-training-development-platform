@@ -34,6 +34,19 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const RoleBasedDefaultRedirect: React.FC = () => {
+  const { user } = useAuth();
+  const roles = user?.roles || (user?.role ? [user.role] : []);
+
+  if (roles.includes('System Administrator')) return <Navigate to="/admin/dashboard" replace />;
+  if (roles.includes('Practice Lead')) return <Navigate to="/practice-lead/dashboard" replace />;
+  if (roles.includes('Regional Lead')) return <Navigate to="/regional-lead/dashboard" replace />;
+  if (roles.includes('Training Manager')) return <Navigate to="/training-manager/dashboard" replace />;
+  if (roles.includes('Mentor')) return <Navigate to="/mentor/dashboard" replace />;
+  if (roles.includes('Management')) return <Navigate to="/management/dashboard" replace />;
+  return <Navigate to="/resource/dashboard" replace />;
+};
+
 const ProtectedLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -52,7 +65,7 @@ const ProtectedLayout: React.FC = () => {
   return (
     <DashboardLayout>
       <Routes>
-        <Route path="/" element={<Navigate to="/management/dashboard" replace />} />
+        <Route path="/" element={<RoleBasedDefaultRedirect />} />
         <Route path="/management/dashboard" element={<ManagementDashboard />} />
         <Route path="/practice-lead/dashboard" element={<PracticeLeadDashboard />} />
         <Route path="/resource/dashboard" element={<ResourceDashboard />} />
@@ -68,7 +81,7 @@ const ProtectedLayout: React.FC = () => {
         />
         <Route path="/training-manager/dashboard" element={<TrainingManagerDashboard />} />
         <Route path="/mentor/dashboard" element={<MentorDashboard />} />
-        <Route path="*" element={<Navigate to="/management/dashboard" replace />} />
+        <Route path="*" element={<RoleBasedDefaultRedirect />} />
       </Routes>
     </DashboardLayout>
   );

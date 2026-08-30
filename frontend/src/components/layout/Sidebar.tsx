@@ -39,7 +39,8 @@ import {
   Zap,
   HelpCircle,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 
 interface NavItem {
@@ -51,6 +52,11 @@ interface NavItem {
 interface NavSection {
   title: string;
   items: NavItem[];
+}
+
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 // 1. Resource Dashboard Sidebar Configuration
@@ -230,7 +236,7 @@ const managementSidebar: NavSection[] = [
   },
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -256,18 +262,32 @@ export const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-white border-r border-slate-200 shadow-sm z-50 py-5 text-slate-700 overflow-x-hidden select-none">
+    <aside
+      className={`flex flex-col fixed left-0 top-0 h-full w-[260px] bg-white border-r border-slate-200 shadow-xl z-50 py-5 text-slate-700 overflow-x-hidden select-none transition-transform duration-300 ease-in-out ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}
+    >
       {/* Brand Header */}
-      <div className="px-5 mb-5 flex flex-col gap-0.5 shrink-0">
+      <div className="px-5 mb-5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 shrink-0">
             <span className="text-base font-extrabold">R</span>
           </div>
-          <h1 className="font-bold text-lg text-slate-900 tracking-tight truncate">RTDP Global</h1>
+          <div>
+            <h1 className="font-bold text-lg text-slate-900 tracking-tight truncate">RTDP Global</h1>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
+              Enterprise Resource
+            </span>
+          </div>
         </div>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider pl-11 truncate">
-          Enterprise Resource
-        </span>
+        {onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Quick Action Button */}
@@ -295,6 +315,9 @@ export const Sidebar: React.FC = () => {
                   <NavLink
                     key={item.name + item.path}
                     to={item.path}
+                    onClick={() => {
+                      if (onMobileClose) onMobileClose();
+                    }}
                     className={({ isActive }) => {
                       const isItemActive =
                         (isMainRoute && isActive) ||
@@ -331,6 +354,7 @@ export const Sidebar: React.FC = () => {
         </button>
         <button
           onClick={() => {
+            if (onMobileClose) onMobileClose();
             logout();
             navigate('/login');
           }}

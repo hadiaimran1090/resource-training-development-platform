@@ -13,13 +13,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     <div className="min-h-screen bg-[#F8F9FA] text-slate-800 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-700">
       <TopNavbar onToggleSidebar={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
-      {/* Sidebar for Desktop */}
-      <Sidebar />
+      {/* Sidebar for Desktop & Mobile Drawer */}
+      <Sidebar isMobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
 
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
