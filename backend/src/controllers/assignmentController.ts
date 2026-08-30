@@ -2,13 +2,23 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { AssignmentService } from '../services/assignmentService.js';
 
-export const getAssignments = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const assignments = await AssignmentService.getAllAssignments();
+    const assignments = await AssignmentService.getAllAssignments(req.user!);
     res.status(200).json(assignments);
   } catch (error: any) {
     console.error('Error fetching assignments:', error);
-    res.status(500).json({ message: 'Failed to fetch assignments.' });
+    res.status(500).json({ message: error?.message || 'Failed to fetch assignments.' });
+  }
+};
+
+export const getAssignableResources = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const resources = await AssignmentService.getAssignableResources(req.user!);
+    res.status(200).json(resources);
+  } catch (error: any) {
+    console.error('Error fetching assignable resources:', error);
+    res.status(500).json({ message: error?.message || 'Failed to fetch assignable resources.' });
   }
 };
 
@@ -19,7 +29,7 @@ export const createAssignment = async (req: AuthRequest, res: Response): Promise
       res.status(400).json({ message: 'Resource, Client Name, and Start Date are required.' });
       return;
     }
-    const newAssignment = await AssignmentService.createAssignment({
+    const newAssignment = await AssignmentService.createAssignment(req.user!, {
       resource_id: Number(resource_id),
       client_name,
       project_name,
@@ -30,7 +40,7 @@ export const createAssignment = async (req: AuthRequest, res: Response): Promise
     res.status(201).json(newAssignment);
   } catch (error: any) {
     console.error('Error creating assignment:', error);
-    res.status(400).json({ message: 'Failed to create assignment.' });
+    res.status(400).json({ message: error?.message || 'Failed to create assignment.' });
   }
 };
 
@@ -38,7 +48,7 @@ export const updateAssignment = async (req: AuthRequest, res: Response): Promise
   try {
     const { id } = req.params;
     const { client_name, project_name, start_date, end_date, status } = req.body;
-    const updated = await AssignmentService.updateAssignment(Number(id), {
+    const updated = await AssignmentService.updateAssignment(req.user!, Number(id), {
       client_name,
       project_name,
       start_date,
@@ -52,19 +62,19 @@ export const updateAssignment = async (req: AuthRequest, res: Response): Promise
     res.status(200).json(updated);
   } catch (error: any) {
     console.error('Error updating assignment:', error);
-    res.status(400).json({ message: 'Failed to update assignment.' });
+    res.status(400).json({ message: error?.message || 'Failed to update assignment.' });
   }
 };
 
 export const toggleAssignmentStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, end_date } = req.body;
     if (!status || !['active', 'completed', 'cancelled'].includes(status)) {
       res.status(400).json({ message: 'Status must be active, completed, or cancelled.' });
       return;
     }
-    const updated = await AssignmentService.toggleAssignmentStatus(Number(id), status);
+    const updated = await AssignmentService.toggleAssignmentStatus(req.user!, Number(id), status, end_date);
     if (!updated) {
       res.status(404).json({ message: 'Assignment not found.' });
       return;
@@ -72,6 +82,21 @@ export const toggleAssignmentStatus = async (req: AuthRequest, res: Response): P
     res.status(200).json(updated);
   } catch (error: any) {
     console.error('Error updating assignment status:', error);
-    res.status(500).json({ message: 'Failed to update assignment status.' });
+    res.status(500).json({ message: error?.message || 'Failed to update assignment status.' });
+  }
+};
+
+export const deleteAssignment = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const success = await AssignmentService.deleteAssignment(req.user!, Number(id));
+    if (!success) {
+      res.status(404).json({ message: 'Assignment not found.' });
+      return;
+    }
+    res.status(200).json({ message: 'Assignment deleted successfully.' });
+  } catch (error: any) {
+    console.error('Error deleting assignment:', error);
+    res.status(400).json({ message: error?.message || 'Failed to delete assignment.' });
   }
 };

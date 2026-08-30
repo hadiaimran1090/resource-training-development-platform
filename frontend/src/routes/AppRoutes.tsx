@@ -15,6 +15,7 @@ import { RegionManagementPage } from '../pages/admin/RegionManagementPage';
 import { PracticeManagementPage } from '../pages/admin/PracticeManagementPage';
 import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
 import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
+import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManagementPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -119,6 +120,14 @@ const ProtectedLayout: React.FC = () => {
           element={
             <RequireRole allowedRoles={['Regional Lead']}>
               <RegionalLeadDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/assignments"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'System Administrator', 'Management']}>
+              <AssignmentManagementPage />
             </RequireRole>
           }
         />
