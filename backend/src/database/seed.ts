@@ -54,10 +54,12 @@ export const seedDatabase = async () => {
     }
 
     // C. Practices
+    await client.query('DELETE FROM practices WHERE id NOT IN (SELECT MIN(id) FROM practices GROUP BY name);');
+    await client.query('ALTER TABLE practices ADD CONSTRAINT practices_name_unique UNIQUE (name);').catch(() => {});
     const practices = ['Software Engineering', 'Quality Assurance', 'Data & Analytics', 'DevOps & Cloud'];
     for (const practiceName of practices) {
       await client.query(
-        `INSERT INTO practices (name, is_active) VALUES ($1, TRUE) ON CONFLICT DO NOTHING`,
+        `INSERT INTO practices (name, is_active) VALUES ($1, TRUE) ON CONFLICT (name) DO NOTHING`,
         [practiceName]
       );
     }

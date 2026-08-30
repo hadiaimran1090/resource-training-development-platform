@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS regions (
 -- 3. Create Practices Table
 CREATE TABLE IF NOT EXISTS practices (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) UNIQUE NOT NULL,
     lead_user_id INT,
     is_active BOOLEAN DEFAULT TRUE
 );

@@ -54,10 +54,18 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           userApi.getRegions(),
           userApi.getPractices(),
         ]);
+        // Deduplicate catalog arrays by name
+        const uniquePractices = practicesData.filter(
+          (p, index, self) => index === self.findIndex((t) => t.name === p.name)
+        );
+        const uniqueRegions = regionsData.filter(
+          (r, index, self) => index === self.findIndex((t) => t.name === r.name)
+        );
+
         // Strictly filter out System Administrator from client selection
         setRoles(rolesData.filter((r) => r.name !== 'System Administrator'));
-        setRegions(regionsData);
-        setPractices(practicesData);
+        setRegions(uniqueRegions);
+        setPractices(uniquePractices);
       } catch (err: any) {
         setError('Failed to load role/region/practice catalogs.');
       } finally {
