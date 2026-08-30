@@ -17,9 +17,22 @@ export const seedDatabase = async () => {
     client = await pool.connect();
 
     // 1. Ensure Database Schema Exists (Run schema.sql DDL)
-    const schemaPath = path.resolve(process.cwd(), 'src/database/schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'src/database/schema.sql'),
+      path.resolve(process.cwd(), 'backend/src/database/schema.sql'),
+      path.join(__dirname, 'schema.sql'),
+      path.resolve(process.cwd(), 'dist/database/schema.sql'),
+    ];
+
+    let schemaSql = '';
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        schemaSql = fs.readFileSync(p, 'utf8');
+        break;
+      }
+    }
+
+    if (schemaSql) {
       await client.query(schemaSql);
     }
 
