@@ -8,8 +8,14 @@ const { Pool } = pg;
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/rtdp_db';
 
+const isProduction =
+  process.env.NODE_ENV === 'production' ||
+  connectionString.includes('sslmode=') ||
+  connectionString.includes('neon.tech');
+
 export const pool = new Pool({
   connectionString,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
 });
 
 // Helper to provide clear guidance for PostgreSQL connection issues
