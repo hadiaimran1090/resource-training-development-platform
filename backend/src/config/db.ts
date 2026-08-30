@@ -10,39 +10,32 @@ const connectionString =
 
 const isProduction =
   process.env.NODE_ENV === 'production' ||
+  !!process.env.VERCEL ||
   connectionString.includes('sslmode=') ||
   connectionString.includes('neon.tech');
 
 export const pool = new Pool({
   connectionString,
   ssl: isProduction ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Helper to provide clear guidance for PostgreSQL connection issues
 export const handlePgError = (error: any) => {
   if (error?.code === '28P01') {
     console.error(
-      '[PostgreSQL Error 28P01] Password authentication failed for user "postgres".'
-    );
-    console.error(
-      'SOLUTION: Open "backend/.env" and set the password in DATABASE_URL to your local PostgreSQL password:'
-    );
-    console.error(
-      'DATABASE_URL=postgresql://postgres:YOUR_ACTUAL_PASSWORD@localhost:5432/rtdp_db\n'
+      '[PostgreSQL Error 28P01] Password authentication failed.'
     );
   } else if (error?.code === '3D000') {
     console.error(
-      '[PostgreSQL Error 3D000] Database "rtdp_db" does not exist.'
+      '[PostgreSQL Error 3D000] Database does not exist.'
     );
-    console.error(
-      'SOLUTION: Run the following SQL command in psql or pgAdmin:'
-    );
-    console.error('CREATE DATABASE rtdp_db;\n');
   } else if (error?.code === 'ECONNREFUSED') {
     console.error(
-      '[PostgreSQL Connection Error] Could not connect to PostgreSQL on localhost:5432.'
+      '[PostgreSQL Connection Error] Could not connect to database host.'
     );
-    console.error('SOLUTION: Ensure your local PostgreSQL service is running.\n');
   } else {
     console.error('[Database Connection Error]', error?.message || error);
   }
@@ -59,3 +52,4 @@ export const checkDbConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+
