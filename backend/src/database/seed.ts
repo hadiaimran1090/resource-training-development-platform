@@ -6,21 +6,24 @@ import path from 'path';
 
 dotenv.config();
 
+/**
+ * Industry-Level Database Seed Script
+ * Responsible ONLY for seeding initial/development data idempotently.
+ * All DDL schema structures belong in schema.sql.
+ */
 export const seedDatabase = async () => {
   let client;
   try {
     client = await pool.connect();
 
+    // 1. Ensure Database Schema Exists (Run schema.sql DDL)
     const schemaPath = path.resolve(process.cwd(), 'src/database/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
       await client.query(schemaSql);
     }
-    await client.query('ALTER TABLE users ALTER COLUMN profile_image_url TYPE TEXT;');
-    await client.query('DELETE FROM users WHERE email != $1;', ['admin@rtdp.com']);
 
-    // 2. Unified Seed Data Initialization
-    // A. Roles
+    // 2. Seed Initial System Roles
     const roles = [
       { name: 'System Administrator', description: 'Full system control and administrative privileges' },
       { name: 'Practice Lead', description: 'Practice oversight and resource management' },
@@ -38,7 +41,7 @@ export const seedDatabase = async () => {
       );
     }
 
-    // B. Regions
+    // 3. Seed Initial Regions
     const regions = [
       { name: 'APAC', code: 'APAC' },
       { name: 'KSA', code: 'KSA' },
@@ -48,26 +51,21 @@ export const seedDatabase = async () => {
 
     for (const region of regions) {
       await client.query(
-        `INSERT INTO regions (name, code, is_active) VALUES ($1, $2, TRUE) ON CONFLICT (name) DO NOTHING`,
+        `INSERT INTO regions (name, code, is_active, status) VALUES ($1, $2, TRUE, 'active') ON CONFLICT (name) DO NOTHING`,
         [region.name, region.code]
       );
     }
 
-    // C. Practices
-    await client.query('DELETE FROM practices WHERE id NOT IN (SELECT MIN(id) FROM practices GROUP BY name);');
-    await client.query('ALTER TABLE practices ADD CONSTRAINT practices_name_unique UNIQUE (name);').catch(() => {});
+    // 4. Seed Initial Practices
     const practices = ['Software Engineering', 'Quality Assurance', 'Data & Analytics', 'DevOps & Cloud'];
     for (const practiceName of practices) {
       await client.query(
-        `INSERT INTO practices (name, is_active) VALUES ($1, TRUE) ON CONFLICT (name) DO NOTHING`,
+        `INSERT INTO practices (name, is_active, status) VALUES ($1, TRUE, 'active') ON CONFLICT (name) DO NOTHING`,
         [practiceName]
       );
     }
 
-    // D. Seed Test Users & Link Roles in Junction Table (user_roles)
-    const defaultPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@786';
-    const commonPasswordHash = await bcrypt.hash(defaultPassword, 10);
-
+    // 5. Fetch Role, Region, and Practice mappings for User creation
     const rolesRes = await client.query(`SELECT id, name FROM roles`);
     const regionsRes = await client.query(`SELECT id, name FROM regions`);
     const practicesRes = await client.query(`SELECT id, name FROM practices`);
@@ -76,6 +74,11 @@ export const seedDatabase = async () => {
     const regionMap = new Map<string, number>(regionsRes.rows.map((r: any) => [r.name, r.id]));
     const practiceMap = new Map<string, number>(practicesRes.rows.map((p: any) => [p.name, p.id]));
 
+    // Default password hash using bcrypt
+    const defaultPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@786';
+    const commonPasswordHash = await bcrypt.hash(defaultPassword, 10);
+
+    // 6. Seed Default Platform & Demo Users
     const usersToSeed = [
       {
         name: 'System Administrator',
@@ -160,7 +163,7 @@ export const seedDatabase = async () => {
         userId = userCheck.rows[0].id;
       }
 
-      // Link roles in user_roles junction table
+      // Link roles in user_roles junction table (Supports multi-role mapping)
       for (const roleName of u.roleNames) {
         const roleId = roleMap.get(roleName);
         if (roleId && userId) {
@@ -170,6 +173,48 @@ export const seedDatabase = async () => {
           );
         }
       }
+
+      // 7. Seed Sample Resource Profile & Assignments for Resource Role Users
+      if (u.roleNames.includes('Resource')) {
+        const regionalLeadCheck = await client.query(
+          `SELECT id FROM users WHERE email = 'rohan@rtdp.com'`
+        );
+        const regionalLeadId = regionalLeadCheck.rows[0]?.id || null;
+
+        const resInsert = await client.query(
+          `INSERT INTO resources (user_id, region_id, practice_id, regional_lead_id, designation, experience_years, current_status)
+           VALUES ($1, $2, $3, $4, 'Senior Software Engineer', 3.5, 'bench')
+           ON CONFLICT (user_id) DO NOTHING
+           RETURNING id`,
+          [userId, regionId || null, practiceId || null, regionalLeadId]
+        );
+
+        let resourceId = resInsert.rows[0]?.id;
+        if (!resourceId) {
+          const rFind = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [userId]);
+          resourceId = rFind.rows[0]?.id;
+        }
+
+        if (resourceId) {
+          const asgCheck = await client.query(`SELECT id FROM assignments WHERE resource_id = $1`, [resourceId]);
+          if (asgCheck.rows.length === 0) {
+            await client.query(
+              `INSERT INTO assignments (resource_id, client_name, project_name, start_date, status)
+               VALUES ($1, 'Acme Corp', 'Fintech Platform Modernization', '2026-01-15', 'active')`,
+              [resourceId]
+            );
+          }
+        }
+      }
+    }
+
+    // 8. Link Practice Leads in Practices table
+    const sarahUser = await client.query(`SELECT id FROM users WHERE email = 'sarah@rtdp.com'`);
+    if (sarahUser.rows.length > 0 && practiceMap.has('Software Engineering')) {
+      await client.query(
+        `UPDATE practices SET lead_user_id = $1 WHERE id = $2 AND lead_user_id IS NULL`,
+        [sarahUser.rows[0].id, practiceMap.get('Software Engineering')]
+      );
     }
 
     console.log('[Database] Connected & initialized successfully.');

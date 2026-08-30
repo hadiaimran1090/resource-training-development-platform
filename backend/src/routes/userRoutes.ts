@@ -6,8 +6,6 @@ const router = Router();
 
 // Catalog Metadata Endpoints (Protected for Authenticated Users)
 router.get('/roles', authenticateToken, UserController.getRoles);
-router.get('/regions', authenticateToken, UserController.getRegions);
-router.get('/practices', authenticateToken, UserController.getPractices);
 
 // User Management Endpoints (STRICTLY Protected for System Administrator Only)
 router.get(

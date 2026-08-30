@@ -12,6 +12,7 @@ export interface StatCardProps {
   };
   subtitle?: string;
   highlighted?: boolean;
+  onClick?: () => void;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -22,10 +23,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend,
   subtitle,
   highlighted = false,
+  onClick,
 }) => {
   return (
     <div
+      onClick={onClick}
       className={`bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-md transition-all duration-300 flex flex-col relative overflow-hidden ${
+        onClick ? 'cursor-pointer hover:border-blue-300' : ''
+      } ${
         highlighted ? 'border-blue-200 bg-gradient-to-br from-white to-blue-50/20' : ''
       }`}
     >

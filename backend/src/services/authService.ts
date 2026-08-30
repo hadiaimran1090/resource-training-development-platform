@@ -282,10 +282,17 @@ export class AuthService {
 
     if (password && password.trim().length > 0) {
       const passwordHash = await bcrypt.hash(password.trim(), 10);
-      await pool.query(
-        `UPDATE users SET password_hash = $1, profile_image_url = COALESCE($2, profile_image_url), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [passwordHash, profileImageUrl !== undefined ? profileImageUrl : null, userId]
-      );
+      if (profileImageUrl !== undefined) {
+        await pool.query(
+          `UPDATE users SET password_hash = $1, profile_image_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [passwordHash, profileImageUrl, userId]
+        );
+      } else {
+        await pool.query(
+          `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [passwordHash, userId]
+        );
+      }
     } else if (profileImageUrl !== undefined) {
       await pool.query(
         `UPDATE users SET profile_image_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,

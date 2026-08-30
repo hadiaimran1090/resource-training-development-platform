@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../../components/ui/StatCard';
 import {
   Users,
@@ -6,10 +7,6 @@ import {
   Globe,
   Building,
   AlertTriangle,
-  MapPin,
-  Shield,
-  FilePlus,
-  RefreshCw,
   Filter,
   ArrowRight
 } from 'lucide-react';
@@ -27,14 +24,16 @@ const userDistData = [
 ];
 
 export const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
       {/* Header Actions */}
       <div className="flex justify-end items-center gap-3 mb-2">
-        <button className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
-          Export Report
-        </button>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2">
+        <button
+          onClick={() => navigate('/admin/users')}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+        >
           + Add User
         </button>
       </div>
@@ -46,24 +45,28 @@ export const AdminDashboard: React.FC = () => {
           value="12,450"
           icon={Users}
           trend={{ text: '+4.2% vs last mo', type: 'positive' }}
+          onClick={() => navigate('/admin/users')}
         />
         <StatCard
           title="Active Users"
           value="8,920"
           icon={UserCheck}
           trend={{ text: '+1.1%', type: 'positive' }}
+          onClick={() => navigate('/admin/users')}
         />
         <StatCard
           title="Active Regions"
           value="24"
           icon={Globe}
-          subtitle="Global Coverage"
+          subtitle="Click to Manage Regions"
+          onClick={() => navigate('/admin/regions')}
         />
         <StatCard
           title="Active Practices"
           value="18"
           icon={Building}
-          subtitle="Across all regions"
+          subtitle="Click to Manage Practices"
+          onClick={() => navigate('/admin/practices')}
         />
         <div className="col-span-2 md:col-span-4 lg:col-span-1 bg-gradient-to-br from-rose-50 to-white rounded-xl p-5 border border-rose-200/80 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs">
@@ -71,7 +74,7 @@ export const AdminDashboard: React.FC = () => {
             <span>System Alerts</span>
           </div>
           <div className="text-2xl font-extrabold text-slate-900 my-1">3 Critical</div>
-          <button className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+          <button className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
             Review Alerts <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -138,21 +141,33 @@ export const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
             <h2 className="text-base font-bold text-slate-900 mb-4">Quick Management</h2>
             <div className="grid grid-cols-2 gap-3">
-              <button className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">New Region</span>
+              <button
+                onClick={() => navigate('/admin/regions')}
+                className="p-4 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                <Globe className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-semibold">Manage Regions</span>
               </button>
-              <button className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">New Role</span>
+              <button
+                onClick={() => navigate('/admin/practices')}
+                className="p-4 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                <Building className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-semibold">Manage Practices</span>
               </button>
-              <button className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors">
-                <FilePlus className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">Add Skill</span>
+              <button
+                onClick={() => navigate('/admin/resources')}
+                className="p-4 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                <Users className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-semibold">Resources</span>
               </button>
-              <button className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors">
-                <RefreshCw className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">Backup</span>
+              <button
+                onClick={() => navigate('/admin/users')}
+                className="p-4 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+              >
+                <UserCheck className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-semibold">User Accounts</span>
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { AuthPayload, ACCESS_TOKEN_COOKIE } from '../types/auth.js';
 export interface AuthenticatedRequest extends Request {
   user?: AuthPayload;
 }
+export type AuthRequest = AuthenticatedRequest;
 
 /**
  * JWT Authentication Middleware

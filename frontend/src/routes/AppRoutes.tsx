@@ -11,6 +11,10 @@ import { AdminDashboard } from '../pages/admin/AdminDashboard';
 import { TrainingManagerDashboard } from '../pages/training-manager/TrainingManagerDashboard';
 import { MentorDashboard } from '../pages/mentor/MentorDashboard';
 import { UserManagementPage } from '../pages/admin/UserManagementPage';
+import { RegionManagementPage } from '../pages/admin/RegionManagementPage';
+import { PracticeManagementPage } from '../pages/admin/PracticeManagementPage';
+import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
+import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -87,6 +91,30 @@ const ProtectedLayout: React.FC = () => {
           }
         />
         <Route
+          path="/admin/regions"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <RegionManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/practices"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <PracticeManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/resources"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <ResourceManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="/regional-lead/dashboard"
           element={
             <RequireRole allowedRoles={['Regional Lead']}>
@@ -131,6 +159,14 @@ const ProtectedLayout: React.FC = () => {
           element={
             <RequireRole allowedRoles={['Resource']}>
               <ResourceDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/profile"
+          element={
+            <RequireRole allowedRoles={['Resource']}>
+              <ResourceProfilePage />
             </RequireRole>
           }
         />

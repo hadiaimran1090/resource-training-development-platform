@@ -78,7 +78,7 @@ const resourceSidebar: NavSection[] = [
   {
     title: 'Career & Profile',
     items: [
-      { name: 'My Profile', path: '/resource/dashboard#profile', icon: User },
+      { name: 'My Profile', path: '/resource/profile', icon: User },
       { name: 'My Skills', path: '/resource/dashboard#skills', icon: Award },
       { name: 'Certifications', path: '/resource/dashboard#certifications', icon: CheckCircle },
       { name: 'Interview History', path: '/resource/dashboard#interview-history', icon: History },
@@ -147,9 +147,10 @@ const adminSidebar: NavSection[] = [
     title: 'User & Access Control',
     items: [
       { name: 'User Management', path: '/admin/users', icon: UserCheck },
+      { name: 'Regions Management', path: '/admin/regions', icon: Globe },
+      { name: 'Practices Management', path: '/admin/practices', icon: Building },
+      { name: 'Resources Catalog', path: '/admin/resources', icon: Users },
       { name: 'Roles', path: '/admin/dashboard#roles', icon: Shield },
-      { name: 'Regions', path: '/admin/dashboard#regions', icon: Globe },
-      { name: 'Practices', path: '/admin/dashboard#practices', icon: Building },
     ],
   },
   {

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LogOut, Shield, Settings } from 'lucide-react';
 
 interface ProfileDropdownProps {
-  onOpenProfileModal: () => void;
+  onOpenProfileModal?: () => void;
 }
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileModal }) => {
@@ -31,6 +31,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
   };
 
   const primaryRole = user?.roles?.[0] || user?.role || 'User';
+  const isResource = primaryRole === 'Resource';
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -74,20 +75,22 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
 
           {/* Menu Actions */}
           <div className="p-1.5 space-y-0.5">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                onOpenProfileModal();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors text-left"
-            >
-              <Settings className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Edit Profile & Password</span>
-            </button>
+            {!isResource && onOpenProfileModal && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenProfileModal();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors text-left cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Edit Profile & Password</span>
+              </button>
+            )}
 
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
               <span>Sign Out</span>
