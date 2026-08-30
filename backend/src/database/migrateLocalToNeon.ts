@@ -6,10 +6,10 @@ dotenv.config();
 const { Pool } = pg;
 
 // Local PostgreSQL connection string (from pgAdmin)
-const localDbUrl = process.env.LOCAL_DATABASE_URL || 'postgresql://postgres:admin@localhost:5432/rtdp_db';
+const localDbUrl = process.env.DATABASE_URL;
 
 // Neon Cloud PostgreSQL connection string
-const neonDbUrl = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_xBZ8qz4dtSoF@ep-flat-art-b30z9d8j-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
+const neonDbUrl = process.env.DATABASE_URL_NEON;
 
 const localPool = new Pool({ connectionString: localDbUrl });
 const neonPool = new Pool({
