@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -11,19 +11,36 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
 
-// Dynamic CORS configuration reflecting Vercel origins with credentials support
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Return origin directly to satisfy Access-Control-Allow-Origin + credentials
-      if (!origin) return callback(null, true);
-      return callback(null, origin);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  })
+const productionFrontendOrigin = 'https://resource-training-development-platf.vercel.app';
+const configuredFrontendOrigins =
+  process.env.FRONTEND_ORIGIN || process.env.CLIENT_URL || '';
+
+const allowedOrigins = new Set(
+  [productionFrontendOrigin, ...configuredFrontendOrigins.split(',')]
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
 );
+
+// `credentials: true` requires a specific origin; never use `*` here.
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    // Requests without Origin (health checks, curl, same-origin server calls) are safe.
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS origin is not allowed: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
+};
+
+// This runs before all routes, including OPTIONS preflight requests.
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());

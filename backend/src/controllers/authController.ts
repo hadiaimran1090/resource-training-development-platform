@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { type CookieOptions, Request, Response } from 'express';
 import { AuthService } from '../services/authService.js';
 import { checkDbConnection } from '../config/db.js';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
@@ -7,18 +7,27 @@ import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '../types/auth.js';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Cookie Security Configuration for Production & Vercel Cross-Site Auth
-const accessTokenCookieOptions = {
+const accessTokenCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
   sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/',
   maxAge: 15 * 60 * 1000, // 15 minutes
 };
 
-const refreshTokenCookieOptions = {
+const refreshTokenCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
   sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
+const clearCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/',
 };
 
 export class AuthController {
@@ -115,8 +124,8 @@ export class AuthController {
       });
     } catch (error: any) {
       // Clear cookies on refresh failure
-      res.clearCookie(ACCESS_TOKEN_COOKIE);
-      res.clearCookie(REFRESH_TOKEN_COOKIE);
+      res.clearCookie(ACCESS_TOKEN_COOKIE, clearCookieOptions);
+      res.clearCookie(REFRESH_TOKEN_COOKIE, clearCookieOptions);
 
       res.status(401).json({
         success: false,
@@ -138,16 +147,16 @@ export class AuthController {
       }
 
       // Clear HttpOnly Cookies
-      res.clearCookie(ACCESS_TOKEN_COOKIE);
-      res.clearCookie(REFRESH_TOKEN_COOKIE);
+      res.clearCookie(ACCESS_TOKEN_COOKIE, clearCookieOptions);
+      res.clearCookie(REFRESH_TOKEN_COOKIE, clearCookieOptions);
 
       res.status(200).json({
         success: true,
         message: 'Logged out successfully.',
       });
     } catch (error: any) {
-      res.clearCookie(ACCESS_TOKEN_COOKIE);
-      res.clearCookie(REFRESH_TOKEN_COOKIE);
+      res.clearCookie(ACCESS_TOKEN_COOKIE, clearCookieOptions);
+      res.clearCookie(REFRESH_TOKEN_COOKIE, clearCookieOptions);
 
       res.status(200).json({
         success: true,
