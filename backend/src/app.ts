@@ -24,8 +24,8 @@ const allowedOrigins = new Set(
 // `credentials: true` requires a specific origin; never use `*` here.
 const corsOptions: CorsOptions = {
   origin(origin, callback) {
-    // Requests without Origin (health checks, curl, same-origin server calls) are safe.
-    if (!origin || allowedOrigins.has(origin)) {
+    // Requests without Origin (health checks, curl) or from Vercel deployments are allowed.
+    if (!origin || allowedOrigins.has(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
       return;
     }

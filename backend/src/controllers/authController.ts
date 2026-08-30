@@ -4,7 +4,7 @@ import { checkDbConnection } from '../config/db.js';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '../types/auth.js';
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
 // Cookie Security Configuration for Production & Vercel Cross-Site Auth
 const accessTokenCookieOptions: CookieOptions = {
