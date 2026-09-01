@@ -138,15 +138,18 @@ export const migrateLocalToNeon = async () => {
     const resRes = await localClient.query(`SELECT * FROM resources`);
     for (const r of resRes.rows) {
       await neonClient.query(
-        `INSERT INTO resources (id, user_id, region_id, practice_id, regional_lead_id, phone_number, designation, experience_years, current_status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO resources (user_id, region_id, practice_id, regional_lead_id, phone_number, designation, experience_years, current_status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (user_id) DO UPDATE SET
+           region_id = EXCLUDED.region_id,
+           practice_id = EXCLUDED.practice_id,
+           regional_lead_id = EXCLUDED.regional_lead_id,
            phone_number = EXCLUDED.phone_number,
            designation = EXCLUDED.designation,
            experience_years = EXCLUDED.experience_years,
            current_status = EXCLUDED.current_status,
            updated_at = EXCLUDED.updated_at`,
-        [r.id, r.user_id, r.region_id, r.practice_id, r.regional_lead_id, r.phone_number || null, r.designation, r.experience_years, r.current_status, r.created_at, r.updated_at]
+        [r.user_id, r.region_id, r.practice_id, r.regional_lead_id, r.phone_number || null, r.designation, r.experience_years, r.current_status, r.created_at, r.updated_at]
       );
     }
     console.log(`Migrated ${resRes.rows.length} resources.`);
