@@ -5,10 +5,8 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Local PostgreSQL connection string (from pgAdmin)
+// Local & Neon Cloud PostgreSQL Connection Strings
 const localDbUrl = process.env.DATABASE_URL;
-
-// Neon Cloud PostgreSQL connection string
 const neonDbUrl = process.env.DATABASE_URL_NEON;
 
 const localPool = new Pool({ connectionString: localDbUrl });
@@ -16,6 +14,9 @@ const neonPool = new Pool({
   connectionString: neonDbUrl,
   ssl: { rejectUnauthorized: false },
 });
+
+localPool.on('error', (err) => console.error('[Local Pool Error]', err.message));
+neonPool.on('error', (err) => console.error('[Neon Pool Error]', err.message));
 
 export const migrateLocalToNeon = async () => {
   let localClient, neonClient;
