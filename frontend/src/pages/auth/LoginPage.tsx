@@ -151,7 +151,7 @@ export const LoginPage: React.FC = () => {
                 onChange={(e) => setSelectedTargetRole(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer"
               >
-                <option value="auto" className="bg-slate-900 text-white">Auto-Detect Role (Default)</option>
+                <option value="auto" className="bg-slate-900 text-white">Auto-Detect Role</option>
                 <option value="System Administrator" className="bg-slate-900 text-white">System Administrator</option>
                 <option value="Practice Lead" className="bg-slate-900 text-white">Practice Lead</option>
                 <option value="Regional Lead" className="bg-slate-900 text-white">Regional Lead</option>
