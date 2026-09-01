@@ -129,33 +129,6 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Target Role Selector */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 pl-1 flex items-center justify-between">
-              <span>Login Dashboard Role</span>
-            </label>
-            <div className="relative">
-              <Shield className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={selectedTargetRole}
-                onChange={(e) => setSelectedTargetRole(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-              >
-                <option value="auto" className="bg-slate-900 text-white">Auto-Detect Role</option>
-                <option value="System Administrator" className="bg-slate-900 text-white">System Administrator</option>
-                <option value="Practice Lead" className="bg-slate-900 text-white">Practice Lead</option>
-                <option value="Regional Lead" className="bg-slate-900 text-white">Regional Lead</option>
-                <option value="Training Manager" className="bg-slate-900 text-white">Training Manager</option>
-                <option value="Mentor" className="bg-slate-900 text-white">Mentor / SME</option>
-                <option value="Resource" className="bg-slate-900 text-white">Resource</option>
-                <option value="Management" className="bg-slate-900 text-white">Management</option>
-              </select>
-            </div>
-          </div>
-
->>>>>>> 0d4364cafcbf4862d33306c92776f7358252bddb
           {/* Submit Button */}
           <button
             type="submit"
