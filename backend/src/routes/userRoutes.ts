@@ -6,15 +6,8 @@ const router = Router();
 
 // Catalog Metadata Endpoints (Protected for Authenticated Users)
 router.get('/roles', authenticateToken, UserController.getRoles);
-router.get('/regions', authenticateToken, UserController.getRegions);
-router.get('/practices', authenticateToken, UserController.getPractices);
-router.get('/regions/:regionId/practices', authenticateToken, UserController.getPracticesByRegion);
 router.get('/users/catalog/roles', authenticateToken, UserController.getRoles);
-router.get('/users/catalog/regions', authenticateToken, UserController.getRegions);
-router.get('/users/catalog/practices', authenticateToken, UserController.getPractices);
 router.get('/catalog/roles', authenticateToken, UserController.getRoles);
-router.get('/catalog/regions', authenticateToken, UserController.getRegions);
-router.get('/catalog/practices', authenticateToken, UserController.getPractices);
 
 // Bench History Endpoint (Accessible to Admin, Regional Lead, Management, or Self)
 router.get('/users/:id/bench-history', authenticateToken, UserController.getUserBenchHistory);
