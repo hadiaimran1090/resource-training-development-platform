@@ -130,6 +130,7 @@ export const seedDatabase = async () => {
         roleNames: ['System Administrator'],
         regionName: 'APAC',
         practiceName: null,
+        mustResetPassword: true,
       },
       {
         name: 'Sarah Practice Lead',
@@ -138,6 +139,7 @@ export const seedDatabase = async () => {
         roleNames: ['Practice Lead'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
+        mustResetPassword: true,
       },
       {
         name: 'Rohan Regional Lead',
@@ -146,6 +148,7 @@ export const seedDatabase = async () => {
         roleNames: ['Regional Lead'],
         regionName: 'KSA',
         practiceName: null,
+        mustResetPassword: true,
       },
       {
         name: 'Tania Training Manager',
@@ -154,6 +157,7 @@ export const seedDatabase = async () => {
         roleNames: ['Training Manager'],
         regionName: 'UAE',
         practiceName: null,
+        mustResetPassword: true,
       },
       {
         name: 'Michael Mentor',
@@ -162,6 +166,7 @@ export const seedDatabase = async () => {
         roleNames: ['Mentor', 'Practice Lead'],
         regionName: 'VSI',
         practiceName: 'Quality Assurance',
+        mustResetPassword: true,
       },
       {
         name: 'Rachel Resource',
@@ -170,6 +175,7 @@ export const seedDatabase = async () => {
         roleNames: ['Resource'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
+        mustResetPassword: true,
       },
       {
         name: 'Marcus Management',
@@ -178,6 +184,7 @@ export const seedDatabase = async () => {
         roleNames: ['Management'],
         regionName: 'APAC',
         practiceName: null,
+        mustResetPassword: true,
       },
     ];
 
@@ -190,13 +197,14 @@ export const seedDatabase = async () => {
       if (userCheck.rows.length === 0) {
         const userInsertRes = await client.query(
           `INSERT INTO users (name, email, password_hash, employee_id, must_reset_password, region_id, practice_id, status)
-           VALUES ($1, $2, $3, $4, FALSE, $5, $6, 'active')
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
            RETURNING id`,
           [
             u.name,
             u.email,
             commonPasswordHash,
             u.employeeId,
+            u.mustResetPassword,
             regionId || null,
             practiceId || null,
           ]
@@ -204,6 +212,10 @@ export const seedDatabase = async () => {
         userId = userInsertRes.rows[0].id;
       } else {
         userId = userCheck.rows[0].id;
+        await client.query(
+          `UPDATE users SET must_reset_password = $1, region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+          [u.mustResetPassword, regionId || null, practiceId || null, userId]
+        );
       }
 
       // Link roles in user_roles junction table (Supports multi-role mapping)
