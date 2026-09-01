@@ -128,7 +128,6 @@ export class UserService {
         user_id AS "userId",
         start_date AS "startDate",
         end_date AS "endDate",
-        reason,
         GREATEST(1, (COALESCE(end_date, CURRENT_DATE) - start_date))::int AS "durationDays"
       FROM bench_records
       WHERE user_id = $1
@@ -141,7 +140,6 @@ export class UserService {
       userId: row.userId,
       startDate: new Date(row.startDate).toISOString().split('T')[0],
       endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : null,
-      reason: row.reason,
       durationDays: row.durationDays,
     }));
 
@@ -310,7 +308,7 @@ export class UserService {
 
     // Initial Bench History Record
     await pool.query(
-      `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Initial Bench Placement')`,
+      `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
       [newUserId]
     );
 
@@ -408,7 +406,7 @@ export class UserService {
       if (newCurrentStatus === 'bench') {
         // Create new open bench record
         await pool.query(
-          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Re-entered Bench Status')`,
+          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
           [id]
         );
       } else if (currentUser.currentStatus === 'bench') {

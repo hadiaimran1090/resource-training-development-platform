@@ -235,15 +235,15 @@ export const seedDatabase = async () => {
       if (benchCheck.rows.length === 0) {
         // Initial closed bench period (e.g. 30 days)
         await client.query(
-          `INSERT INTO bench_records (user_id, start_date, end_date, reason)
-           VALUES ($1, '2026-01-01', '2026-01-31', 'Initial Onboarding & Bench Readiness')`,
+          `INSERT INTO bench_records (user_id, start_date, end_date)
+           VALUES ($1, '2026-01-01', '2026-01-31')`,
           [userId]
         );
         // Active bench record if not currently assigned
         if (!u.roleNames.includes('Resource')) {
           await client.query(
-            `INSERT INTO bench_records (user_id, start_date, end_date, reason)
-             VALUES ($1, '2026-02-01', NULL, 'Available for Bench Placement')`,
+            `INSERT INTO bench_records (user_id, start_date, end_date)
+             VALUES ($1, '2026-02-01', NULL)`,
             [userId]
           );
         }

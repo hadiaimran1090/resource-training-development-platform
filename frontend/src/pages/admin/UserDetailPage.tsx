@@ -281,7 +281,7 @@ export const UserDetailPage: React.FC = () => {
                       {record.endDate ? new Date(record.endDate).toLocaleDateString() : 'Present (Active Bench)'}
                     </span>
                   </div>
-                  <p className="text-slate-500 font-medium">{record.reason || 'Unassigned Bench Period'}</p>
+                  <p className="text-slate-500 font-medium">Bench period</p>
                 </div>
 
                 <div className="shrink-0 text-right">

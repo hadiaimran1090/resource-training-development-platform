@@ -102,7 +102,7 @@ export const BenchHistoryModal: React.FC<BenchHistoryModalProps> = ({ userId, us
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 pl-5">
-                          {record.reason || 'Bench Transition Period'}
+                          Bench transition period
                         </p>
                       </div>
 

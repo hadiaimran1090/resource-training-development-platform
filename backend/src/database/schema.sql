@@ -119,11 +119,12 @@ CREATE TABLE IF NOT EXISTS bench_records (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     start_date DATE NOT NULL DEFAULT CURRENT_DATE,
     end_date DATE,
-    reason VARCHAR(255) DEFAULT 'Unassigned / Bench Transition',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE bench_records DROP COLUMN IF EXISTS reason;
 
 -- 10. Create Refresh Tokens Table
 CREATE TABLE IF NOT EXISTS refresh_tokens (

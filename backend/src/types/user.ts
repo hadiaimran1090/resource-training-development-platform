@@ -3,7 +3,6 @@ export interface BenchRecordDTO {
   userId: number;
   startDate: string;
   endDate: string | null;
-  reason?: string | null;
   durationDays: number;
 }
 

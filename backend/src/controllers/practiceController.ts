@@ -29,7 +29,7 @@ export const getPracticeById = async (req: AuthRequest, res: Response): Promise<
 
 export const createPractice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, description, lead_user_id, status } = req.body;
+    const { name, description, region_id, lead_user_id, status } = req.body;
     if (!name) {
       res.status(400).json({ message: 'Practice Name is required.' });
       return;
@@ -37,6 +37,7 @@ export const createPractice = async (req: AuthRequest, res: Response): Promise<v
     const newPractice = await PracticeService.createPractice({
       name,
       description,
+      region_id: region_id !== undefined && region_id !== null && region_id !== '' ? Number(region_id) : null,
       lead_user_id: lead_user_id ? Number(lead_user_id) : null,
       status,
     });
@@ -51,7 +52,7 @@ export const createPractice = async (req: AuthRequest, res: Response): Promise<v
 export const updatePractice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, description, lead_user_id, status } = req.body;
+    const { name, description, region_id, lead_user_id, status } = req.body;
     if (!name) {
       res.status(400).json({ message: 'Practice Name is required.' });
       return;
@@ -59,6 +60,7 @@ export const updatePractice = async (req: AuthRequest, res: Response): Promise<v
     const updated = await PracticeService.updatePractice(Number(id), {
       name,
       description,
+      region_id: region_id !== undefined && region_id !== null && region_id !== '' ? Number(region_id) : null,
       lead_user_id: lead_user_id ? Number(lead_user_id) : null,
       status,
     });

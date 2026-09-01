@@ -5,7 +5,6 @@ export interface BenchRecord {
   userId: number;
   startDate: string;
   endDate?: string | null;
-  reason?: string;
   durationDays: number;
 }
 

@@ -184,7 +184,7 @@ export class ResourceService {
     if (data.current_status && data.current_status !== existingResource.current_status) {
       if (data.current_status === 'bench') {
         await pool.query(
-          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Re-entered Bench Status')`,
+          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
           [existingResource.user_id]
         );
       } else if (existingResource.current_status === 'bench') {

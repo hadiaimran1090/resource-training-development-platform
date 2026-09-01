@@ -270,7 +270,7 @@ export class AssignmentService {
         );
         // Create new open bench history record
         await pool.query(
-          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Assignment Completed / Re-entered Bench')`,
+          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
           [existingAsg.user_id]
         );
       }
@@ -337,7 +337,7 @@ export class AssignmentService {
           [existingAsg.resource_id]
         );
         await pool.query(
-          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Assignment Deleted / Re-entered Bench')`,
+          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
           [existingAsg.user_id]
         );
       }
