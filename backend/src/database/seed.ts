@@ -92,11 +92,22 @@ export const seedDatabase = async () => {
     ];
 
     for (const p of practicesToSeed) {
-      if (p.regionId) {
+      if (!p.regionId) continue;
+
+      const existingPractice = await client.query(
+        `SELECT id FROM practices WHERE LOWER(name) = LOWER($1)`,
+        [p.name]
+      );
+
+      if (existingPractice.rows.length === 0) {
         await client.query(
-          `INSERT INTO practices (name, region_id, is_active, status) VALUES ($1, $2, TRUE, 'active')
-           ON CONFLICT (name) DO UPDATE SET region_id = EXCLUDED.region_id, status = 'active', is_active = TRUE`,
+          `INSERT INTO practices (name, region_id, is_active, status) VALUES ($1, $2, TRUE, 'active')`,
           [p.name, p.regionId]
+        );
+      } else {
+        await client.query(
+          `UPDATE practices SET region_id = $1, status = 'active', is_active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [p.regionId, existingPractice.rows[0].id]
         );
       }
     }
