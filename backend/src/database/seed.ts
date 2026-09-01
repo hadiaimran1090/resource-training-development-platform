@@ -16,6 +16,15 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
+    const existingDataCheck = await client.query(`
+      SELECT EXISTS (SELECT 1 FROM roles) OR EXISTS (SELECT 1 FROM regions) OR EXISTS (SELECT 1 FROM users) AS has_data
+    `);
+
+    if (existingDataCheck.rows[0]?.has_data) {
+      console.log('[Database] Existing seed data detected. Skipping reseed on startup.');
+      return;
+    }
+
     // 1. Ensure Database Schema Exists (Run schema.sql DDL if present)
     const possiblePaths = [
       path.resolve(process.cwd(), 'src/database/schema.sql'),
@@ -213,7 +222,7 @@ export const seedDatabase = async () => {
       } else {
         userId = userCheck.rows[0].id;
         await client.query(
-          `UPDATE users SET must_reset_password = $1, region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+          `UPDATE users SET region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
           [u.mustResetPassword, regionId || null, practiceId || null, userId]
         );
       }

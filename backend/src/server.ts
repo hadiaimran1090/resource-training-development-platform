@@ -8,5 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
-  seedDatabase();
+  if (process.env.SEED_ON_START !== 'false') {
+    seedDatabase();
+  }
 });

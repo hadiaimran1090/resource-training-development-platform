@@ -29,12 +29,12 @@ export const getRegionById = async (req: AuthRequest, res: Response): Promise<vo
 
 export const createRegion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, code, status } = req.body;
+    const { name, code, status, practiceIds } = req.body;
     if (!name || !code) {
       res.status(400).json({ message: 'Region Name and Code are required.' });
       return;
     }
-    const newRegion = await RegionService.createRegion({ name, code, status });
+    const newRegion = await RegionService.createRegion({ name, code, status, practiceIds });
     res.status(201).json(newRegion);
   } catch (error: any) {
     console.error('Error creating region:', error);
@@ -46,12 +46,12 @@ export const createRegion = async (req: AuthRequest, res: Response): Promise<voi
 export const updateRegion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, code, status } = req.body;
+    const { name, code, status, practiceIds } = req.body;
     if (!name || !code) {
       res.status(400).json({ message: 'Region Name and Code are required.' });
       return;
     }
-    const updated = await RegionService.updateRegion(Number(id), { name, code, status });
+    const updated = await RegionService.updateRegion(Number(id), { name, code, status, practiceIds });
     if (!updated) {
       res.status(404).json({ message: 'Region not found.' });
       return;
