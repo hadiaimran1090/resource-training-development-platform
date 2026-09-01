@@ -255,7 +255,7 @@ export const UserDetailPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5 text-blue-600" />
-            <h3 className="font-extrabold text-base text-slate-900">Dynamic Bench History Timeline</h3>
+            <h3 className="font-extrabold text-base text-slate-900">Bench History Timeline</h3>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700">
             Total: {user.maxBenchDays || 0} Days
