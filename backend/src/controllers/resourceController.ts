@@ -62,7 +62,15 @@ export const updateMyResourceProfile = async (req: AuthRequest, res: Response): 
       return;
     }
 
-    const { current_status, assignment_id, end_date } = req.body;
+    const { current_status, assignment_id, end_date, phone_number, profile_image_url } = req.body;
+
+    if (phone_number !== undefined) {
+      await ResourceService.updateResourceProfile(resource.id, { phone_number });
+    }
+
+    if (profile_image_url !== undefined) {
+      await pool.query(`UPDATE users SET profile_image_url = $1 WHERE id = $2`, [profile_image_url, userId]);
+    }
 
     // Handle assignment end date update
     if (assignment_id && end_date) {

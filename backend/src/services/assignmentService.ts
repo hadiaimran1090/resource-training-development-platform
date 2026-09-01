@@ -38,7 +38,7 @@ export class AssignmentService {
         queryParams.push(userRegionId);
         whereClause = `WHERE (u.region_id = $1 OR r.region_id = $1)`;
       } else {
-        whereClause = `WHERE 1=0`; // No region assigned to lead
+        whereClause = `WHERE 1=0`;
       }
     } else if (!isSystemAdminOrMgmt && isResource) {
       queryParams.push(user.userId);
@@ -46,14 +46,16 @@ export class AssignmentService {
     }
 
     const query = `
-      SELECT a.id, a.resource_id, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at,
+      SELECT a.id, a.resource_id, a.assigned_by_user_id, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at,
              u.name as resource_name, u.email as resource_email, u.employee_id as resource_employee_id,
              r.designation, r.current_status as resource_status,
-             reg.id as region_id, reg.name as region_name, reg.code as region_code
+             reg.id as region_id, reg.name as region_name, reg.code as region_code,
+             assigner.name as assigned_by_name
       FROM assignments a
       INNER JOIN resources r ON a.resource_id = r.id
       INNER JOIN users u ON r.user_id = u.id
       LEFT JOIN regions reg ON u.region_id = reg.id
+      LEFT JOIN users assigner ON a.assigned_by_user_id = assigner.id
       ${whereClause}
       ORDER BY a.start_date DESC, a.id DESC
     `;
@@ -98,9 +100,14 @@ export class AssignmentService {
   }
 
   /**
-   * Create a new client/project assignment with Regional Lead authorization check
+   * Create a new client/project assignment (STRICTLY Regional Lead for resources in own region)
    */
   static async createAssignment(user: AuthPayload, data: AssignmentData) {
+    const isRegionalLead = user.roles?.includes('Regional Lead');
+    if (!isRegionalLead) {
+      throw new Error('Forbidden: Only Regional Leads are authorized to create project assignments.');
+    }
+
     const {
       resource_id,
       client_name,
@@ -125,18 +132,12 @@ export class AssignmentService {
 
     const resourceObj = resQuery.rows[0];
 
-    // Authorization check for Regional Lead
-    const isSystemAdminOrMgmt = user.roles?.some((r) =>
-      ['System Administrator', 'Management'].includes(r)
-    );
-    if (!isSystemAdminOrMgmt && user.roles?.includes('Regional Lead')) {
-      const leadRegionId = await this.getUserRegionId(user.userId);
-      if (!leadRegionId || Number(leadRegionId) !== Number(resourceObj.region_id)) {
-        throw new Error('Forbidden: You can only assign client projects to resources within your assigned region.');
-      }
+    const leadRegionId = await this.getUserRegionId(user.userId);
+    if (!leadRegionId || Number(leadRegionId) !== Number(resourceObj.region_id)) {
+      throw new Error('Forbidden: You can only assign client projects to resources within your assigned region.');
     }
 
-    // Single active assignment rule: If creating active assignment, auto-complete previous active assignments
+    // Single active assignment rule: Auto-complete previous active assignments if new one is active
     if (status === 'active') {
       const activeAssignments = await pool.query(
         `SELECT id FROM assignments WHERE resource_id = $1 AND status = 'active'`,
@@ -154,12 +155,13 @@ export class AssignmentService {
     }
 
     const query = `
-      INSERT INTO assignments (resource_id, client_name, project_name, start_date, end_date, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, resource_id, client_name, project_name, start_date, end_date, status, created_at, updated_at
+      INSERT INTO assignments (resource_id, assigned_by_user_id, client_name, project_name, start_date, end_date, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, resource_id, assigned_by_user_id, client_name, project_name, start_date, end_date, status, created_at, updated_at
     `;
     const result = await pool.query(query, [
       resource_id,
+      user.userId,
       client_name.trim(),
       project_name ? project_name.trim() : null,
       start_date,
@@ -167,11 +169,15 @@ export class AssignmentService {
       status,
     ]);
 
-    // Update resource status in resources table
+    // Update resource status in resources table and close bench record
     if (status === 'active') {
       await pool.query(
         `UPDATE resources SET current_status = 'assigned', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
         [resource_id]
+      );
+      await pool.query(
+        `UPDATE bench_records SET end_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND end_date IS NULL`,
+        [resourceObj.user_id]
       );
     }
 
@@ -182,9 +188,8 @@ export class AssignmentService {
    * Update an existing assignment with Regional Lead authorization check
    */
   static async updateAssignment(user: AuthPayload, id: number, data: Partial<AssignmentData>) {
-    // Fetch assignment & resource region info
     const asgRes = await pool.query(
-      `SELECT a.id, a.resource_id, a.status as old_status, COALESCE(u.region_id, r.region_id) as region_id
+      `SELECT a.id, a.resource_id, r.user_id, a.status as old_status, COALESCE(u.region_id, r.region_id) as region_id
        FROM assignments a
        INNER JOIN resources r ON a.resource_id = r.id
        INNER JOIN users u ON r.user_id = u.id
@@ -198,7 +203,6 @@ export class AssignmentService {
 
     const existingAsg = asgRes.rows[0];
 
-    // Authorization check for Regional Lead
     const isSystemAdminOrMgmt = user.roles?.some((r) =>
       ['System Administrator', 'Management'].includes(r)
     );
@@ -234,7 +238,6 @@ export class AssignmentService {
       values.push(data.status);
     }
 
-    // Business rule: If completing assignment and end_date is missing, default to current date
     if (data.status === 'completed' && data.end_date === undefined) {
       fields.push(`end_date = COALESCE(end_date, CURRENT_DATE)`);
     }
@@ -253,7 +256,7 @@ export class AssignmentService {
     const result = await pool.query(query, values);
     const updatedAsg = result.rows[0];
 
-    // Sync resource bench status
+    // Sync resource bench status & history
     const targetStatus = data.status || existingAsg.old_status;
     if (targetStatus === 'completed' || targetStatus === 'cancelled') {
       const activeRes = await pool.query(
@@ -265,11 +268,20 @@ export class AssignmentService {
           `UPDATE resources SET current_status = 'bench', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
           [existingAsg.resource_id]
         );
+        // Create new open bench history record
+        await pool.query(
+          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Assignment Completed / Re-entered Bench')`,
+          [existingAsg.user_id]
+        );
       }
     } else if (targetStatus === 'active') {
       await pool.query(
         `UPDATE resources SET current_status = 'assigned', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
         [existingAsg.resource_id]
+      );
+      await pool.query(
+        `UPDATE bench_records SET end_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND end_date IS NULL`,
+        [existingAsg.user_id]
       );
     }
 
@@ -277,18 +289,18 @@ export class AssignmentService {
   }
 
   /**
-   * Toggle or update assignment status
+   * Toggle assignment status
    */
   static async toggleAssignmentStatus(user: AuthPayload, id: number, status: 'active' | 'completed' | 'cancelled', endDate?: string) {
     return this.updateAssignment(user, id, { status, end_date: endDate || (status === 'completed' ? new Date().toISOString().split('T')[0] : null) });
   }
 
   /**
-   * Delete assignment with Regional Lead authorization check
+   * Delete assignment
    */
   static async deleteAssignment(user: AuthPayload, id: number) {
     const asgRes = await pool.query(
-      `SELECT a.id, a.resource_id, a.status, COALESCE(u.region_id, r.region_id) as region_id
+      `SELECT a.id, a.resource_id, r.user_id, a.status, COALESCE(u.region_id, r.region_id) as region_id
        FROM assignments a
        INNER JOIN resources r ON a.resource_id = r.id
        INNER JOIN users u ON r.user_id = u.id
@@ -302,7 +314,6 @@ export class AssignmentService {
 
     const existingAsg = asgRes.rows[0];
 
-    // Authorization check for Regional Lead
     const isSystemAdminOrMgmt = user.roles?.some((r) =>
       ['System Administrator', 'Management'].includes(r)
     );
@@ -315,7 +326,6 @@ export class AssignmentService {
 
     await pool.query(`DELETE FROM assignments WHERE id = $1`, [id]);
 
-    // If deleted assignment was active, check if resource has remaining active assignments
     if (existingAsg.status === 'active') {
       const activeRes = await pool.query(
         `SELECT id FROM assignments WHERE resource_id = $1 AND status = 'active'`,
@@ -325,6 +335,10 @@ export class AssignmentService {
         await pool.query(
           `UPDATE resources SET current_status = 'bench', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
           [existingAsg.resource_id]
+        );
+        await pool.query(
+          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Assignment Deleted / Re-entered Bench')`,
+          [existingAsg.user_id]
         );
       }
     }

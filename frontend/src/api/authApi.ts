@@ -5,9 +5,14 @@ export interface User {
   name: string;
   email: string;
   employeeId: string;
+  mustResetPassword: boolean;
   roles: string[];
   role?: string;
+  regionId?: number | null;
   region: string;
+  practiceId?: number | null;
+  phoneNumber?: string | null;
+  currentStatus?: string | null;
   profileImageUrl?: string | null;
   status: string;
 }
@@ -35,6 +40,14 @@ export const authApi = {
     return response.data.data.user;
   },
 
+  resetFirstPassword: async (currentPassword: string, newPassword: string): Promise<User> => {
+    const response = await apiClient.post<LoginResponse>('/auth/first-time-reset-password', {
+      currentPassword,
+      newPassword,
+    });
+    return response.data.data.user;
+  },
+
   logout: async (): Promise<void> => {
     await apiClient.post('/auth/logout');
   },
@@ -49,7 +62,7 @@ export const authApi = {
     return response.data.data;
   },
 
-  updateProfile: async (data: { password?: string; profileImageUrl?: string | null }): Promise<User> => {
+  updateProfile: async (data: { password?: string; profileImageUrl?: string | null; phoneNumber?: string | null }): Promise<User> => {
     const response = await apiClient.put<UserResponse>('/auth/profile', data);
     return response.data.data;
   },

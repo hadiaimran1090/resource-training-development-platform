@@ -4,6 +4,7 @@ export interface RegionData {
   name: string;
   code: string;
   status?: string;
+  practiceIds?: number[];
 }
 
 export class RegionService {
@@ -14,9 +15,15 @@ export class RegionService {
              COALESCE(r.is_active, TRUE) as is_active,
              COALESCE(r.created_at, CURRENT_TIMESTAMP) as created_at,
              COALESCE(r.updated_at, CURRENT_TIMESTAMP) as updated_at,
-             COUNT(u.id)::int as total_users
+             COUNT(DISTINCT u.id)::int as total_users,
+             COALESCE(
+               JSON_AGG(
+                 DISTINCT JSONB_BUILD_OBJECT('id', p.id, 'name', p.name, 'status', p.status)
+               ) FILTER (WHERE p.id IS NOT NULL), '[]'::json
+             ) as practices
       FROM regions r
       LEFT JOIN users u ON u.region_id = r.id
+      LEFT JOIN practices p ON p.region_id = r.id
       GROUP BY r.id
       ORDER BY r.name ASC
     `;
@@ -31,9 +38,15 @@ export class RegionService {
              COALESCE(r.is_active, TRUE) as is_active,
              COALESCE(r.created_at, CURRENT_TIMESTAMP) as created_at,
              COALESCE(r.updated_at, CURRENT_TIMESTAMP) as updated_at,
-             COUNT(u.id)::int as total_users
+             COUNT(DISTINCT u.id)::int as total_users,
+             COALESCE(
+               JSON_AGG(
+                 DISTINCT JSONB_BUILD_OBJECT('id', p.id, 'name', p.name, 'status', p.status)
+               ) FILTER (WHERE p.id IS NOT NULL), '[]'::json
+             ) as practices
       FROM regions r
       LEFT JOIN users u ON u.region_id = r.id
+      LEFT JOIN practices p ON p.region_id = r.id
       WHERE r.id = $1
       GROUP BY r.id
     `;
@@ -43,7 +56,7 @@ export class RegionService {
   }
 
   static async createRegion(data: RegionData) {
-    const { name, code, status = 'active' } = data;
+    const { name, code, status = 'active', practiceIds } = data;
     const is_active = status === 'active';
     const query = `
       INSERT INTO regions (name, code, status, is_active)
@@ -51,11 +64,17 @@ export class RegionService {
       RETURNING id, name, code, status, is_active, created_at, updated_at
     `;
     const result = await pool.query(query, [name.trim(), code.trim().toUpperCase(), status, is_active]);
-    return result.rows[0];
+    const newRegion = result.rows[0];
+
+    if (Array.isArray(practiceIds) && practiceIds.length > 0) {
+      await pool.query(`UPDATE practices SET region_id = $1 WHERE id = ANY($2::int[])`, [newRegion.id, practiceIds]);
+    }
+
+    return this.getRegionById(newRegion.id);
   }
 
   static async updateRegion(id: number, data: RegionData) {
-    const { name, code, status = 'active' } = data;
+    const { name, code, status = 'active', practiceIds } = data;
     const is_active = status === 'active';
     const query = `
       UPDATE regions
@@ -65,7 +84,16 @@ export class RegionService {
     `;
     const result = await pool.query(query, [name.trim(), code.trim().toUpperCase(), status, is_active, id]);
     if (result.rows.length === 0) return null;
-    return result.rows[0];
+
+    if (Array.isArray(practiceIds)) {
+      // Dissociate old practices for this region, then reassign selected ones
+      await pool.query(`UPDATE practices SET region_id = NULL WHERE region_id = $1`, [id]);
+      if (practiceIds.length > 0) {
+        await pool.query(`UPDATE practices SET region_id = $1 WHERE id = ANY($2::int[])`, [id, practiceIds]);
+      }
+    }
+
+    return this.getRegionById(id);
   }
 
   static async toggleRegionStatus(id: number, status: string) {
@@ -78,6 +106,6 @@ export class RegionService {
     `;
     const result = await pool.query(query, [status, is_active, id]);
     if (result.rows.length === 0) return null;
-    return result.rows[0];
+    return this.getRegionById(id);
   }
 }

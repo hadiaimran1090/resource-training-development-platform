@@ -1,5 +1,14 @@
 import { apiClient } from './apiClient';
 
+export interface BenchRecord {
+  id: number;
+  userId: number;
+  startDate: string;
+  endDate?: string | null;
+  reason?: string;
+  durationDays: number;
+}
+
 export interface Assignment {
   id: number;
   resource_id: number;
@@ -17,6 +26,7 @@ export interface ResourceProfile {
   user_name: string;
   user_email: string;
   employee_id: string;
+  phone_number?: string | null;
   profile_image_url?: string | null;
   account_status: string;
   region_id?: number | null;
@@ -32,6 +42,8 @@ export interface ResourceProfile {
   created_at: string;
   updated_at: string;
   assignments?: Assignment[];
+  bench_records?: BenchRecord[];
+  total_bench_days?: number;
 }
 
 export interface CreateResourceData {
@@ -51,6 +63,7 @@ export interface UpdateResourceData {
   region_id?: number | null;
   practice_id?: number | null;
   regional_lead_id?: number | null;
+  phone_number?: string | null;
   designation?: string;
   experience_years?: number;
   current_status?: 'assigned' | 'bench' | 'training';
@@ -78,6 +91,7 @@ export const resourceApi = {
 
   updateMyProfile: async (data: {
     current_status?: 'assigned' | 'bench' | 'training';
+    phone_number?: string;
     assignment_id?: number;
     end_date?: string;
   }): Promise<ResourceProfile> => {

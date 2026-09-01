@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { ResourceProfile, Assignment } from '../../api/resourceApi';
 import { resourceApi } from '../../api/resourceApi';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/authApi';
 import { ProfileModal } from '../../components/profile/ProfileModal';
 import {
   Briefcase,
@@ -17,6 +18,12 @@ import {
   Pencil,
   Camera,
   UserCheck,
+  Phone,
+  Shield,
+  History,
+  Lock,
+  KeyRound,
+  Check,
 } from 'lucide-react';
 
 export const ResourceProfilePage: React.FC = () => {
@@ -25,8 +32,12 @@ export const ResourceProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Profile Modal State (Password & Avatar edit)
+  // Profile Modal State (Avatar edit)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Phone Number Editing State
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
 
   // Status Change Modal State
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -35,6 +46,13 @@ export const ResourceProfilePage: React.FC = () => {
   // Assignment End Date Modal State
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [endDate, setEndDate] = useState<string>('');
+
+  // Embedded Password Change State
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,11 +63,12 @@ export const ResourceProfilePage: React.FC = () => {
       setProfile(data);
       if (data) {
         setSelectedStatus(data.current_status);
+        setPhoneInput(data.phone_number || '+1-555-0192');
       }
       setError(null);
     } catch (err: any) {
-      console.error('Error fetching resource profile:', err);
-      setError('Could not load resource profile data.');
+      console.error('Error fetching employee profile:', err);
+      setError('Could not load employee profile data.');
     } finally {
       setLoading(false);
     }
@@ -58,6 +77,20 @@ export const ResourceProfilePage: React.FC = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      await resourceApi.updateMyProfile({ phone_number: phoneInput.trim() });
+      setIsEditingPhone(false);
+      fetchProfile();
+    } catch (err: any) {
+      alert('Failed to update phone number.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSaveStatus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,11 +132,41 @@ export const ResourceProfilePage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg(null);
+
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+
+    try {
+      setPasswordSubmitting(true);
+      await authApi.resetFirstPassword(oldPassword, newPassword);
+      setPasswordMsg({ type: 'success', text: 'Password updated successfully!' });
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Failed to change password.',
+      });
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-2">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="text-xs font-semibold">Loading your resource profile...</span>
+        <span className="text-xs font-semibold">Loading your employee profile...</span>
       </div>
     );
   }
@@ -112,24 +175,35 @@ export const ResourceProfilePage: React.FC = () => {
     return (
       <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center text-slate-500 space-y-3">
         <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
-        <h3 className="font-extrabold text-slate-800 text-base">Resource Profile Shell</h3>
+        <h3 className="font-extrabold text-slate-800 text-base">Employee Profile</h3>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Welcome <span className="font-bold text-slate-800">{user?.name}</span>. Your engineering resource profile details are connected with your primary account.
+          Welcome <span className="font-bold text-slate-800">{user?.name}</span>. Your universal employee profile details are active.
         </p>
       </div>
     );
   }
 
   const avatarUrl = profile.profile_image_url || user?.profileImageUrl;
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const isAdminOrLead = userRoles.includes('System Administrator') || userRoles.includes('Regional Lead');
+  const benchRecords = profile.bench_records || [];
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Top Banner Card */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 flex items-start justify-between">
-          <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider">
-            Engineering Resource Profile
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {userRoles.map((r) => (
+              <span
+                key={r}
+                className="bg-white/20 backdrop-blur-md text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider flex items-center gap-1"
+              >
+                <Shield className="w-3 h-3" />
+                {r}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="px-8 pb-8 pt-0 relative flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 -mt-14">
@@ -146,51 +220,116 @@ export const ResourceProfilePage: React.FC = () => {
               <button
                 onClick={() => setIsProfileModalOpen(true)}
                 className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 text-white border-2 border-white shadow-md flex items-center justify-center hover:bg-blue-700 transition-transform active:scale-95 cursor-pointer"
-                title="Edit Profile Image & Password"
+                title="Edit Profile Picture"
               >
                 <Camera className="w-4 h-4" />
               </button>
             </div>
 
-            <div>
+            <div className="space-y-1">
               <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{profile.user_name}</h1>
-              <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                {profile.user_email} • Employee ID: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">{profile.employee_id}</code>
+              <p className="text-xs text-slate-500 font-semibold flex items-center gap-3 flex-wrap">
+                <span>{profile.user_email}</span>
+                <span>•</span>
+                <span>Employee ID: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono font-bold text-slate-800">{profile.employee_id}</code></span>
               </p>
+
+              {/* Editable Phone Number Line */}
+              <div className="flex items-center gap-2 pt-1 text-xs text-slate-700 font-bold">
+                <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                {isEditingPhone ? (
+                  <form onSubmit={handleSavePhone} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="+1-555-0192"
+                    />
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span>{profile.phone_number || phoneInput || '+1-555-0192'}</span>
+                    <button
+                      onClick={() => setIsEditingPhone(true)}
+                      className="p-1 text-slate-400 hover:text-blue-600 rounded transition cursor-pointer"
+                      title="Edit Phone Number"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Clickable Status Badge with Edit Icon */}
+          {/* Status Badge (Editable only by Admin or Regional Lead) */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsStatusModalOpen(true)}
-              className={`px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 border shadow-xs transition-all hover:scale-105 cursor-pointer ${
-                profile.current_status === 'assigned'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100'
-                  : profile.current_status === 'training'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200/80 hover:bg-amber-100'
-                  : 'bg-blue-50 text-blue-700 border-blue-200/80 hover:bg-blue-100'
-              }`}
-              title="Click to Edit Status (Assigned / Bench / Training)"
-            >
-              {profile.current_status === 'assigned' ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>ASSIGNED TO PROJECT</span>
-                </>
-              ) : profile.current_status === 'training' ? (
-                <>
-                  <Clock className="w-4 h-4 text-amber-500" />
-                  <span>IN TRAINING</span>
-                </>
-              ) : (
-                <>
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  <span>AVAILABLE ON BENCH</span>
-                </>
-              )}
-              <Pencil className="w-3.5 h-3.5 text-current opacity-70 ml-1" />
-            </button>
+            {isAdminOrLead ? (
+              <button
+                onClick={() => setIsStatusModalOpen(true)}
+                className={`px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 border shadow-xs transition-all hover:scale-105 cursor-pointer ${
+                  profile.current_status === 'assigned'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100'
+                    : profile.current_status === 'training'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200/80 hover:bg-amber-100'
+                    : 'bg-blue-50 text-blue-700 border-blue-200/80 hover:bg-blue-100'
+                }`}
+                title="Click to Edit Status (Admin / Regional Lead Only)"
+              >
+                {profile.current_status === 'assigned' ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>ASSIGNED TO PROJECT</span>
+                  </>
+                ) : profile.current_status === 'training' ? (
+                  <>
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span>IN TRAINING</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    <span>AVAILABLE ON BENCH</span>
+                  </>
+                )}
+                <Pencil className="w-3.5 h-3.5 text-current opacity-70 ml-1" />
+              </button>
+            ) : (
+              <div
+                className={`px-3.5 py-2 rounded-full text-xs font-extrabold flex items-center gap-2 border shadow-xs ${
+                  profile.current_status === 'assigned'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                    : profile.current_status === 'training'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200/80'
+                    : 'bg-blue-50 text-blue-700 border-blue-200/80'
+                }`}
+              >
+                {profile.current_status === 'assigned' ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>ASSIGNED TO PROJECT</span>
+                  </>
+                ) : profile.current_status === 'training' ? (
+                  <>
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span>IN TRAINING</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    <span>AVAILABLE ON BENCH</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -206,7 +345,7 @@ export const ResourceProfilePage: React.FC = () => {
           <p className="text-base font-extrabold text-slate-900">{profile.designation}</p>
           <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
             <Award className="w-3.5 h-3.5 text-amber-500" />
-            <span>{profile.experience_years} Years Experience</span>
+            <span>{profile.experience_years} Years Professional Experience</span>
           </p>
         </div>
 
@@ -240,7 +379,7 @@ export const ResourceProfilePage: React.FC = () => {
             </div>
             <div>
               <h3 className="font-extrabold text-base text-slate-900">Project Assignments & Client History</h3>
-              <p className="text-xs text-slate-400 font-medium">Track assigned client projects, start date, and end date.</p>
+              <p className="text-xs text-slate-400 font-medium">Track assigned client projects, start date, and editable end date.</p>
             </div>
           </div>
         </div>
@@ -296,7 +435,121 @@ export const ResourceProfilePage: React.FC = () => {
         )}
       </div>
 
-      {/* Profile Modal (Avatar & Password Edit) */}
+      {/* Dynamic Bench History Timeline */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-blue-600" />
+            <h3 className="font-extrabold text-base text-slate-900">Dynamic Bench History Timeline</h3>
+          </div>
+          <span className="px-3.5 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200/60">
+            Total Bench Time: {profile.total_bench_days || 0} Days
+          </span>
+        </div>
+
+        {benchRecords.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-slate-100">
+            No bench history records available for this account.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {benchRecords.map((record) => (
+              <div
+                key={record.id}
+                className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-start justify-between gap-3 text-xs hover:border-blue-300 transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-slate-900">
+                    <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>
+                      {new Date(record.startDate).toLocaleDateString()} —{' '}
+                      {record.endDate ? new Date(record.endDate).toLocaleDateString() : 'Present (Active Bench)'}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 font-medium">{record.reason || 'Bench Period'}</p>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-800">
+                    {record.durationDays} Days
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Embedded Security & Password Update Section */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base border-b border-slate-100 pb-3">
+          <KeyRound className="w-5 h-5 text-blue-600" />
+          <span>Security & Password Update</span>
+        </div>
+
+        {passwordMsg && (
+          <div
+            className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+              passwordMsg.type === 'success'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-rose-50 text-rose-700 border border-rose-200'
+            }`}
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{passwordMsg.text}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Current Password</label>
+            <input
+              type="password"
+              required
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">New Password</label>
+            <input
+              type="password"
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Confirm New Password</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+              <button
+                type="submit"
+                disabled={passwordSubmitting}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition shadow-sm shrink-0 flex items-center gap-1.5"
+              >
+                {passwordSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                <span>Update</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Profile Modal (Avatar Edit) */}
       {isProfileModalOpen && (
         <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       )}
@@ -307,7 +560,7 @@ export const ResourceProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
             <div className="flex items-center gap-2">
               <UserCheck className="w-5 h-5 text-blue-600" />
-              <h3 className="font-extrabold text-base text-slate-900">Change Resource Status</h3>
+              <h3 className="font-extrabold text-base text-slate-900">Change Employment Track Status</h3>
             </div>
 
             <form onSubmit={handleSaveStatus} className="space-y-4">
@@ -323,7 +576,7 @@ export const ResourceProfilePage: React.FC = () => {
                   <option value="training">In Training Track</option>
                 </select>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Selecting <strong>Available on Bench</strong> allows you to be deployed to new projects.
+                  Selecting <strong>Available on Bench</strong> tracks your bench tenure in real-time.
                 </p>
               </div>
 
@@ -371,7 +624,7 @@ export const ResourceProfilePage: React.FC = () => {
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 <p className="text-[11px] text-slate-500 italic mt-1">
-                  Note: Setting an end date that has passed or is today will complete this assignment and automatically return your status to <strong>Available on Bench</strong>.
+                  Setting an end date that has passed or is today will complete this assignment and automatically return your status to <strong>Available on Bench</strong>.
                 </p>
               </div>
 

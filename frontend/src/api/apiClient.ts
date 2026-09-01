@@ -54,6 +54,9 @@ apiClient.interceptors.response.use(
         // Retry the failed original request
         return apiClient(originalRequest);
       } catch (refreshError) {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }

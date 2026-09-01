@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { ResourceProfile, CreateResourceData } from '../../api/resourceApi';
+import type { ResourceProfile } from '../../api/resourceApi';
 import { resourceApi } from '../../api/resourceApi';
 import type { Region } from '../../api/regionApi';
 import { regionApi } from '../../api/regionApi';
@@ -7,7 +7,8 @@ import type { Practice } from '../../api/practiceApi';
 import { practiceApi } from '../../api/practiceApi';
 import type { UserDetail } from '../../api/userApi';
 import { userApi } from '../../api/userApi';
-import { Users, Plus, Edit2, Search, Loader2, AlertCircle, Briefcase, Award, Globe, Building, CheckCircle2, Clock } from 'lucide-react';
+import { BenchHistoryModal } from '../../components/admin/BenchHistoryModal';
+import { Users, Edit2, Search, Loader2, AlertCircle, Briefcase, Award, Globe, Building, CheckCircle2, Clock, History } from 'lucide-react';
 
 export const ResourceManagementPage: React.FC = () => {
   const [resources, setResources] = useState<ResourceProfile[]>([]);
@@ -19,15 +20,12 @@ export const ResourceManagementPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
-  // Modal State
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<ResourceProfile | null>(null);
+  const [selectedBenchUser, setSelectedBenchUser] = useState<{ id: number; name: string } | null>(null);
 
-  // Create/Edit Form Fields
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
+  // Edit Form Fields
   const [designation, setDesignation] = useState('Senior Software Engineer');
   const [experienceYears, setExperienceYears] = useState<number>(2.0);
   const [regionId, setRegionId] = useState<number | ''>('');
@@ -62,27 +60,8 @@ export const ResourceManagementPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleOpenCreateModal = () => {
-    setEditingResource(null);
-    setName('');
-    setEmail('');
-    setPassword('');
-    setEmployeeId('');
-    setDesignation('Software Engineer');
-    setExperienceYears(2.0);
-    setRegionId('');
-    setPracticeId('');
-    setRegionalLeadId('');
-    setCurrentStatus('bench');
-    setIsModalOpen(true);
-  };
-
   const handleOpenEditModal = (res: ResourceProfile) => {
     setEditingResource(res);
-    setName(res.user_name);
-    setEmail(res.user_email);
-    setPassword('');
-    setEmployeeId(res.employee_id);
     setDesignation(res.designation);
     setExperienceYears(res.experience_years || 1.0);
     setRegionId(res.region_id || '');
@@ -94,40 +73,18 @@ export const ResourceManagementPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingResource) return;
 
     try {
       setSubmitting(true);
-      if (editingResource) {
-        await resourceApi.updateResource(editingResource.id, {
-          designation,
-          experience_years: experienceYears,
-          region_id: regionId ? Number(regionId) : null,
-          practice_id: practiceId ? Number(practiceId) : null,
-          regional_lead_id: regionalLeadId ? Number(regionalLeadId) : null,
-          current_status: currentStatus,
-        });
-      } else {
-        if (!name.trim() || !email.trim() || !password.trim() || !employeeId.trim()) {
-          alert('Name, Email, Password, and Employee ID are required for creating a resource account.');
-          setSubmitting(false);
-          return;
-        }
-
-        const payload: CreateResourceData = {
-          name: name.trim(),
-          email: email.trim(),
-          password: password.trim(),
-          employeeId: employeeId.trim(),
-          designation: designation.trim(),
-          experience_years: experienceYears,
-          region_id: regionId ? Number(regionId) : null,
-          practice_id: practiceId ? Number(practiceId) : null,
-          regional_lead_id: regionalLeadId ? Number(regionalLeadId) : null,
-          current_status: currentStatus,
-        };
-
-        await resourceApi.createResource(payload);
-      }
+      await resourceApi.updateResource(editingResource.id, {
+        designation,
+        experience_years: experienceYears,
+        region_id: regionId ? Number(regionId) : null,
+        practice_id: practiceId ? Number(practiceId) : null,
+        regional_lead_id: regionalLeadId ? Number(regionalLeadId) : null,
+        current_status: currentStatus,
+      });
 
       setIsModalOpen(false);
       fetchData();
@@ -161,18 +118,10 @@ export const ResourceManagementPage: React.FC = () => {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Engineering Resources</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Resources Catalog</h1>
             <p className="text-xs text-slate-500 font-medium">Manage engineering resource profiles, practice assignments, and bench status.</p>
           </div>
         </div>
-
-        <button
-          onClick={handleOpenCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Resource</span>
-        </button>
       </div>
 
       {/* Controls Bar */}
@@ -300,13 +249,22 @@ export const ResourceManagementPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleOpenEditModal(res)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Edit Resource Profile"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setSelectedBenchUser({ id: res.user_id, name: res.user_name })}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="View Bench History"
+                        >
+                          <History className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(res)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Edit Resource Profile"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -316,68 +274,14 @@ export const ResourceManagementPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
+      {/* Edit Profile Modal */}
+      {isModalOpen && editingResource && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="font-extrabold text-base text-slate-900">
-              {editingResource ? `Edit Resource Profile (${editingResource.user_name})` : 'Create New Resource Profile'}
+              Edit Resource Profile ({editingResource.user_name})
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!editingResource && (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Full Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Rachel Resource"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Email Address *</label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="rachel@rtdp.com"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Employee ID *</label>
-                      <input
-                        type="text"
-                        required
-                        value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
-                        placeholder="RTDP-RES-101"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Initial Password *</label>
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">Designation *</label>
@@ -481,12 +385,21 @@ export const ResourceManagementPage: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingResource ? 'Save Profile Changes' : 'Create Resource'}</span>
+                  <span>Save Profile Changes</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* Bench History Modal */}
+      {selectedBenchUser && (
+        <BenchHistoryModal
+          userId={selectedBenchUser.id}
+          userName={selectedBenchUser.name}
+          onClose={() => setSelectedBenchUser(null)}
+        />
       )}
     </div>
   );

@@ -88,6 +88,36 @@ export class AuthController {
   }
 
   /**
+   * POST /api/auth/first-time-reset-password
+   */
+  static async resetFirstPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized access.',
+        });
+        return;
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      const updatedUser = await AuthService.resetFirstPassword(userId, { currentPassword, newPassword });
+
+      res.status(200).json({
+        success: true,
+        message: 'Password reset successfully.',
+        data: { user: updatedUser },
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to reset password.',
+      });
+    }
+  }
+
+  /**
    * POST /api/auth/refresh
    * Rotates Refresh Token & Issues New Access Token via HttpOnly Cookies
    */
@@ -198,7 +228,7 @@ export class AuthController {
 
   /**
    * PUT /api/auth/profile
-   * Allows logged-in user to update their own password and profile image
+   * Allows logged-in user to update their own profile details (password, image, phone)
    */
   static async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -212,8 +242,8 @@ export class AuthController {
         return;
       }
 
-      const { password, profileImageUrl } = req.body;
-      const updatedUser = await AuthService.updateProfile(userId, { password, profileImageUrl });
+      const { password, profileImageUrl, phoneNumber } = req.body;
+      const updatedUser = await AuthService.updateProfile(userId, { password, profileImageUrl, phoneNumber });
 
       res.status(200).json({
         success: true,

@@ -8,6 +8,7 @@ import {
   RoleCatalogDTO,
   RegionCatalogDTO,
   PracticeCatalogDTO,
+  BenchRecordDTO,
 } from '../types/user.js';
 
 export class UserService {
@@ -28,6 +29,7 @@ export class UserService {
       name: row.name,
       email: row.email,
       employeeId: row.employee_id,
+      mustResetPassword: row.must_reset_password ?? false,
       roleIds,
       roles,
       roleId: roleIds[0],
@@ -37,6 +39,10 @@ export class UserService {
       practiceId: row.practice_id,
       practice: row.practice_name || null,
       profileImageUrl: row.profile_image_url,
+      phoneNumber: row.phone_number || null,
+      designation: row.designation || 'Engineering Professional',
+      experienceYears: row.experience_years ? parseFloat(row.experience_years) : 1.0,
+      currentStatus: row.current_status || 'bench',
       status: row.status || 'active',
       joiningDate: row.joining_date ? new Date(row.joining_date).toISOString().split('T')[0] : null,
       createdAt: row.created_at,
@@ -45,7 +51,7 @@ export class UserService {
   }
 
   /**
-   * Get All Users with JOINs and optional filters (Excludes current logged in Admin user)
+   * Get All Users with JOINs and optional filters
    */
   static async getAllUsers(filters?: UserFilterDTO, excludeUserId?: number): Promise<UserDetailDTO[]> {
     let query = `
@@ -54,6 +60,7 @@ export class UserService {
         u.name,
         u.email,
         u.employee_id,
+        u.must_reset_password,
         u.region_id,
         u.practice_id,
         u.profile_image_url,
@@ -63,6 +70,10 @@ export class UserService {
         u.updated_at,
         reg.name AS region_name,
         p.name AS practice_name,
+        res.phone_number,
+        res.designation,
+        res.experience_years,
+        res.current_status,
         COALESCE(JSON_AGG(r.id) FILTER (WHERE r.id IS NOT NULL), '[]'::json) AS role_ids,
         COALESCE(JSON_AGG(r.name) FILTER (WHERE r.name IS NOT NULL), '[]'::json) AS role_names
       FROM users u
@@ -70,6 +81,7 @@ export class UserService {
       LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN regions reg ON u.region_id = reg.id
       LEFT JOIN practices p ON u.practice_id = p.id
+      LEFT JOIN resources res ON u.id = res.user_id
       WHERE 1=1
     `;
 
@@ -90,19 +102,56 @@ export class UserService {
       query += ` AND u.id IN (SELECT user_id FROM user_roles WHERE role_id = $${queryParams.length})`;
     }
 
+    if (filters?.regionId) {
+      queryParams.push(filters.regionId);
+      query += ` AND u.region_id = $${queryParams.length}`;
+    }
+
     if (filters?.status) {
       queryParams.push(filters.status);
       query += ` AND u.status = $${queryParams.length}`;
     }
 
-    query += ` GROUP BY u.id, reg.id, p.id ORDER BY u.id ASC`;
+    query += ` GROUP BY u.id, reg.id, p.id, res.id ORDER BY u.id ASC`;
 
     const result = await pool.query(query, queryParams);
     return result.rows.map(this.mapRowToUserDetail);
   }
 
   /**
-   * Get Single User by ID
+   * Get User Bench History by User ID
+   */
+  static async getUserBenchHistory(userId: number): Promise<{ benchRecords: BenchRecordDTO[]; maxBenchDays: number }> {
+    const query = `
+      SELECT 
+        id,
+        user_id AS "userId",
+        start_date AS "startDate",
+        end_date AS "endDate",
+        reason,
+        GREATEST(1, (COALESCE(end_date, CURRENT_DATE) - start_date))::int AS "durationDays"
+      FROM bench_records
+      WHERE user_id = $1
+      ORDER BY start_date DESC, id DESC
+    `;
+
+    const result = await pool.query(query, [userId]);
+    const benchRecords: BenchRecordDTO[] = result.rows.map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      startDate: new Date(row.startDate).toISOString().split('T')[0],
+      endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : null,
+      reason: row.reason,
+      durationDays: row.durationDays,
+    }));
+
+    const totalBenchDays = benchRecords.reduce((sum, r) => sum + (r.durationDays || 0), 0);
+
+    return { benchRecords, maxBenchDays: totalBenchDays };
+  }
+
+  /**
+   * Get Single User by ID with Full Detail and Bench History
    */
   static async getUserById(id: number): Promise<UserDetailDTO> {
     const query = `
@@ -111,6 +160,7 @@ export class UserService {
         u.name,
         u.email,
         u.employee_id,
+        u.must_reset_password,
         u.region_id,
         u.practice_id,
         u.profile_image_url,
@@ -120,6 +170,10 @@ export class UserService {
         u.updated_at,
         reg.name AS region_name,
         p.name AS practice_name,
+        res.phone_number,
+        res.designation,
+        res.experience_years,
+        res.current_status,
         COALESCE(JSON_AGG(r.id) FILTER (WHERE r.id IS NOT NULL), '[]'::json) AS role_ids,
         COALESCE(JSON_AGG(r.name) FILTER (WHERE r.name IS NOT NULL), '[]'::json) AS role_names
       FROM users u
@@ -127,8 +181,9 @@ export class UserService {
       LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN regions reg ON u.region_id = reg.id
       LEFT JOIN practices p ON u.practice_id = p.id
+      LEFT JOIN resources res ON u.id = res.user_id
       WHERE u.id = $1
-      GROUP BY u.id, reg.id, p.id
+      GROUP BY u.id, reg.id, p.id, res.id
     `;
 
     const result = await pool.query(query, [id]);
@@ -137,21 +192,27 @@ export class UserService {
       throw new Error('User not found.');
     }
 
-    return this.mapRowToUserDetail(result.rows[0]);
+    const userDetail = this.mapRowToUserDetail(result.rows[0]);
+    const { benchRecords, maxBenchDays } = await this.getUserBenchHistory(id);
+
+    userDetail.benchRecords = benchRecords;
+    userDetail.maxBenchDays = maxBenchDays;
+
+    return userDetail;
   }
 
   /**
-   * Create New User
+   * Create New User (Auto-generates employee_id if missing; initializes 1:1 Universal Profile)
    */
   static async createUser(dto: CreateUserDTO): Promise<UserDetailDTO> {
-    const { name, email, password, employeeId, roleIds: rawRoleIds, roleId: fallbackRoleId, regionId, practiceId, status, profileImageUrl } = dto;
+    const { name, email, password, employeeId, roleIds: rawRoleIds, roleId: fallbackRoleId, regionId, practiceId, status, profileImageUrl, phoneNumber, designation } = dto;
 
     const targetRoleIds: number[] = Array.isArray(rawRoleIds) && rawRoleIds.length > 0
       ? rawRoleIds
       : fallbackRoleId ? [fallbackRoleId] : [];
 
-    if (!name || !email || !password || !employeeId || targetRoleIds.length === 0) {
-      throw new Error('Name, Email, Password, Employee ID, and at least one Role are required.');
+    if (!name || !email || targetRoleIds.length === 0) {
+      throw new Error('Name, Email, and at least one Role are required.');
     }
 
     if (!this.emailRegex.test(email)) {
@@ -164,10 +225,16 @@ export class UserService {
       throw new Error('A user with this email already exists.');
     }
 
-    // Check duplicate employee ID
-    const empCheck = await pool.query(`SELECT id FROM users WHERE LOWER(employee_id) = LOWER($1)`, [employeeId.trim()]);
-    if (empCheck.rows.length > 0) {
-      throw new Error('A user with this Employee ID already exists.');
+    // Auto-generate employee_id if not provided
+    let finalEmployeeId = employeeId ? employeeId.trim() : '';
+    if (!finalEmployeeId) {
+      const seqRes = await pool.query(`SELECT CONCAT('EMP-', LPAD(nextval('employee_id_seq')::text, 4, '0')) AS emp_id`);
+      finalEmployeeId = seqRes.rows[0].emp_id;
+    } else {
+      const empCheck = await pool.query(`SELECT id FROM users WHERE LOWER(employee_id) = LOWER($1)`, [finalEmployeeId.toLowerCase()]);
+      if (empCheck.rows.length > 0) {
+        throw new Error('A user with this Employee ID already exists.');
+      }
     }
 
     // Check target roles existence and ADMIN RESTRICTION
@@ -197,13 +264,15 @@ export class UserService {
       }
     }
 
+    // Default temporary password if omitted
+    const tempPassword = password && password.trim().length > 0 ? password.trim() : 'Welcome@123';
     const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const passwordHash = await bcrypt.hash(tempPassword, saltRounds);
     const userStatus = status || 'active';
 
     const insertQuery = `
-      INSERT INTO users (name, email, password_hash, employee_id, region_id, practice_id, status, profile_image_url)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO users (name, email, password_hash, employee_id, must_reset_password, region_id, practice_id, status, profile_image_url)
+      VALUES ($1, $2, $3, $4, TRUE, $5, $6, $7, $8)
       RETURNING id
     `;
 
@@ -211,7 +280,7 @@ export class UserService {
       name.trim(),
       email.trim(),
       passwordHash,
-      employeeId.trim(),
+      finalEmployeeId,
       regionId || null,
       practiceId || null,
       userStatus,
@@ -225,18 +294,37 @@ export class UserService {
       await pool.query(`INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [newUserId, rid]);
     }
 
+    // Universal Profile Extension Record Insertion (1:1 with users)
+    await pool.query(
+      `INSERT INTO resources (user_id, region_id, practice_id, phone_number, designation, current_status)
+       VALUES ($1, $2, $3, $4, $5, 'bench')
+       ON CONFLICT (user_id) DO NOTHING`,
+      [
+        newUserId,
+        regionId || null,
+        practiceId || null,
+        phoneNumber || null,
+        designation || 'Engineering Professional',
+      ]
+    );
+
+    // Initial Bench History Record
+    await pool.query(
+      `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Initial Bench Placement')`,
+      [newUserId]
+    );
+
     return this.getUserById(newUserId);
   }
 
   /**
-   * Update Existing User
+   * Update Existing User Profile
    */
-  static async updateUser(id: number, dto: UpdateUserDTO): Promise<UserDetailDTO> {
+  static async updateUser(id: number, dto: UpdateUserDTO, isAdmin: boolean = false): Promise<UserDetailDTO> {
     const currentUser = await this.getUserById(id);
 
     const name = dto.name !== undefined ? dto.name.trim() : currentUser.name;
     const email = dto.email !== undefined ? dto.email.trim() : currentUser.email;
-    const employeeId = dto.employeeId !== undefined ? dto.employeeId.trim() : currentUser.employeeId;
     const regionId = dto.regionId !== undefined ? dto.regionId : currentUser.regionId;
     const practiceId = dto.practiceId !== undefined ? dto.practiceId : currentUser.practiceId;
     const status = dto.status !== undefined ? dto.status : currentUser.status;
@@ -253,7 +341,7 @@ export class UserService {
       throw new Error('Invalid email format.');
     }
 
-    // Check duplicate email excluding current user
+    // Duplicate email check
     if (email && email.toLowerCase() !== currentUser.email.toLowerCase()) {
       const emailCheck = await pool.query(
         `SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2`,
@@ -264,18 +352,7 @@ export class UserService {
       }
     }
 
-    // Check duplicate employee ID excluding current user
-    if (employeeId && employeeId.toLowerCase() !== currentUser.employeeId.toLowerCase()) {
-      const empCheck = await pool.query(
-        `SELECT id FROM users WHERE LOWER(employee_id) = LOWER($1) AND id != $2`,
-        [employeeId, id]
-      );
-      if (empCheck.rows.length > 0) {
-        throw new Error('A user with this Employee ID already exists.');
-      }
-    }
-
-    // If roles are being updated, validate existence and ADMIN RESTRICTION
+    // Role updates validation
     if (targetRoleIds) {
       const rolesCheck = await pool.query(`SELECT id, name FROM roles WHERE id = ANY($1::int[])`, [targetRoleIds]);
       if (rolesCheck.rows.length !== targetRoleIds.length) {
@@ -284,7 +361,7 @@ export class UserService {
 
       const hasAdminRole = rolesCheck.rows.some((r: any) => r.name === 'System Administrator');
       if (hasAdminRole) {
-        throw new Error('Admin account creation is restricted to database seeding only. You cannot assign the System Administrator role via API.');
+        throw new Error('Admin role modification via API is restricted.');
       }
     }
 
@@ -294,41 +371,22 @@ export class UserService {
     }
 
     if (passwordHash) {
-      const updateQuery = `
-        UPDATE users 
-        SET name = $1, email = $2, employee_id = $3, region_id = $4, practice_id = $5, status = $6, profile_image_url = $7, password_hash = $8, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
-      `;
-      await pool.query(updateQuery, [
-        name,
-        email,
-        employeeId,
-        regionId,
-        practiceId,
-        status,
-        profileImageUrl,
-        passwordHash,
-        id,
-      ]);
+      await pool.query(
+        `UPDATE users 
+         SET name = $1, email = $2, region_id = $3, practice_id = $4, status = $5, profile_image_url = $6, password_hash = $7, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $8`,
+        [name, email, regionId, practiceId, status, profileImageUrl, passwordHash, id]
+      );
     } else {
-      const updateQuery = `
-        UPDATE users 
-        SET name = $1, email = $2, employee_id = $3, region_id = $4, practice_id = $5, status = $6, profile_image_url = $7, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $8
-      `;
-      await pool.query(updateQuery, [
-        name,
-        email,
-        employeeId,
-        regionId,
-        practiceId,
-        status,
-        profileImageUrl,
-        id,
-      ]);
+      await pool.query(
+        `UPDATE users 
+         SET name = $1, email = $2, region_id = $3, practice_id = $4, status = $5, profile_image_url = $6, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $7`,
+        [name, email, regionId, practiceId, status, profileImageUrl, id]
+      );
     }
 
-    // Update user_roles junction table if targetRoleIds provided
+    // Update user_roles junction table if roleIds provided
     if (targetRoleIds) {
       await pool.query(`DELETE FROM user_roles WHERE user_id = $1`, [id]);
       for (const rid of targetRoleIds) {
@@ -336,18 +394,58 @@ export class UserService {
       }
     }
 
+    // Update Universal Profile in resources table
+    const phoneNumber = dto.phoneNumber !== undefined ? dto.phoneNumber : currentUser.phoneNumber;
+    const designation = dto.designation !== undefined ? dto.designation : currentUser.designation;
+    const experienceYears = dto.experienceYears !== undefined ? dto.experienceYears : currentUser.experienceYears;
+
+    // Resource status updates: ONLY Admin can modify current_status
+    let newCurrentStatus = currentUser.currentStatus;
+    if (isAdmin && dto.currentStatus && dto.currentStatus !== currentUser.currentStatus) {
+      newCurrentStatus = dto.currentStatus;
+
+      // Handle bench_records tracking state machine transitions
+      if (newCurrentStatus === 'bench') {
+        // Create new open bench record
+        await pool.query(
+          `INSERT INTO bench_records (user_id, start_date, reason) VALUES ($1, CURRENT_DATE, 'Re-entered Bench Status')`,
+          [id]
+        );
+      } else if (currentUser.currentStatus === 'bench') {
+        // Close active bench record
+        await pool.query(
+          `UPDATE bench_records SET end_date = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND end_date IS NULL`,
+          [id]
+        );
+      }
+    }
+
+    await pool.query(
+      `INSERT INTO resources (user_id, region_id, practice_id, phone_number, designation, experience_years, current_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (user_id) DO UPDATE 
+       SET region_id = EXCLUDED.region_id,
+           practice_id = EXCLUDED.practice_id,
+           phone_number = EXCLUDED.phone_number,
+           designation = EXCLUDED.designation,
+           experience_years = EXCLUDED.experience_years,
+           current_status = EXCLUDED.current_status,
+           updated_at = CURRENT_TIMESTAMP`,
+      [id, regionId, practiceId, phoneNumber, designation, experienceYears, newCurrentStatus]
+    );
+
     return this.getUserById(id);
   }
 
   /**
-   * Update User Status (Activate/Deactivate)
+   * Update User Account Status (Active/Inactive)
    */
   static async updateUserStatus(id: number, status: string): Promise<UserDetailDTO> {
     if (!status || !['active', 'inactive'].includes(status.toLowerCase())) {
       throw new Error('Status must be either "active" or "inactive".');
     }
 
-    await this.getUserById(id); // Verify existence
+    await this.getUserById(id);
 
     await pool.query(
       `UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
@@ -392,14 +490,37 @@ export class UserService {
       SELECT 
         p.id, 
         p.name, 
+        p.region_id AS "regionId",
+        reg.name AS "regionName",
         p.lead_user_id AS "leadUserId", 
         u.name AS "leadUserName",
         p.is_active AS "isActive" 
       FROM practices p
+      LEFT JOIN regions reg ON p.region_id = reg.id
       LEFT JOIN users u ON p.lead_user_id = u.id
       ORDER BY p.id ASC
     `;
     const res = await pool.query(query);
+    return res.rows;
+  }
+
+  static async getPracticesByRegion(regionId: number): Promise<PracticeCatalogDTO[]> {
+    const query = `
+      SELECT 
+        p.id, 
+        p.name, 
+        p.region_id AS "regionId",
+        reg.name AS "regionName",
+        p.lead_user_id AS "leadUserId", 
+        u.name AS "leadUserName",
+        p.is_active AS "isActive" 
+      FROM practices p
+      LEFT JOIN regions reg ON p.region_id = reg.id
+      LEFT JOIN users u ON p.lead_user_id = u.id
+      WHERE p.region_id = $1
+      ORDER BY p.id ASC
+    `;
+    const res = await pool.query(query, [regionId]);
     return res.rows;
   }
 }

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import type { Practice, CreatePracticeData } from '../../api/practiceApi';
 import { practiceApi } from '../../api/practiceApi';
+import type { Region } from '../../api/regionApi';
+import { regionApi } from '../../api/regionApi';
 import type { UserDetail } from '../../api/userApi';
 import { userApi } from '../../api/userApi';
-import { Building, Plus, Edit2, CheckCircle2, XCircle, Search, Loader2, AlertCircle, Users, UserCheck } from 'lucide-react';
+import { Building, Plus, Edit2, CheckCircle2, XCircle, Search, Loader2, AlertCircle, Users, UserCheck, Globe } from 'lucide-react';
 
 export const PracticeManagementPage: React.FC = () => {
   const [practices, setPractices] = useState<Practice[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
   const [leadUsers, setLeadUsers] = useState<UserDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +20,7 @@ export const PracticeManagementPage: React.FC = () => {
   const [editingPractice, setEditingPractice] = useState<Practice | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [regionId, setRegionId] = useState<number | ''>('');
   const [leadUserId, setLeadUserId] = useState<number | ''>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [submitting, setSubmitting] = useState(false);
@@ -24,16 +28,19 @@ export const PracticeManagementPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [practicesData, usersData] = await Promise.all([
+      const [practicesData, regionsData, usersData] = await Promise.all([
         practiceApi.getPractices(),
+        regionApi.getRegions(),
         userApi.getUsers(),
       ]);
       setPractices(Array.isArray(practicesData) ? practicesData : []);
+      setRegions(Array.isArray(regionsData) ? regionsData : []);
       setLeadUsers(Array.isArray(usersData) ? usersData : []);
       setError(null);
     } catch (err: any) {
       setError('Failed to fetch practice data.');
       setPractices([]);
+      setRegions([]);
       setLeadUsers([]);
     } finally {
       setLoading(false);
@@ -48,6 +55,7 @@ export const PracticeManagementPage: React.FC = () => {
     setEditingPractice(null);
     setName('');
     setDescription('');
+    setRegionId('');
     setLeadUserId('');
     setStatus('active');
     setIsModalOpen(true);
@@ -57,6 +65,7 @@ export const PracticeManagementPage: React.FC = () => {
     setEditingPractice(prac);
     setName(prac.name);
     setDescription(prac.description || '');
+    setRegionId(prac.region_id || '');
     setLeadUserId(prac.lead_user_id || '');
     setStatus(prac.status);
     setIsModalOpen(true);
@@ -71,6 +80,7 @@ export const PracticeManagementPage: React.FC = () => {
       const payload: CreatePracticeData = {
         name: name.trim(),
         description: description.trim(),
+        region_id: regionId ? Number(regionId) : null,
         lead_user_id: leadUserId ? Number(leadUserId) : null,
         status,
       };
@@ -119,7 +129,7 @@ export const PracticeManagementPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Practices Management</h1>
-            <p className="text-xs text-slate-500 font-medium">Manage technical practices, descriptions, and practice leads.</p>
+            <p className="text-xs text-slate-500 font-medium">Manage technical practices, assigned region, and practice leads.</p>
           </div>
         </div>
 
@@ -168,6 +178,7 @@ export const PracticeManagementPage: React.FC = () => {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-6 py-3.5">Practice Name</th>
+                  <th className="px-6 py-3.5">Assigned Region</th>
                   <th className="px-6 py-3.5">Assigned Practice Lead</th>
                   <th className="px-6 py-3.5">Total Users</th>
                   <th className="px-6 py-3.5">Status</th>
@@ -181,6 +192,16 @@ export const PracticeManagementPage: React.FC = () => {
                       <div className="font-bold text-slate-900">{prac.name}</div>
                       {prac.description && (
                         <div className="text-[11px] text-slate-400 max-w-xs truncate">{prac.description}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {prac.region_name ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
+                          <Globe className="w-3 h-3 text-blue-500" />
+                          {prac.region_name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Global / Unassigned</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -259,6 +280,22 @@ export const PracticeManagementPage: React.FC = () => {
                   placeholder="e.g. Software Engineering"
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Assign Region (Optional)</label>
+                <select
+                  value={regionId}
+                  onChange={(e) => setRegionId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                >
+                  <option value="">Select Region...</option>
+                  {regions.map((reg) => (
+                    <option key={reg.id} value={reg.id}>
+                      {reg.name} ({reg.code})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">

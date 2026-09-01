@@ -7,6 +7,7 @@ export interface Region {
   status: 'active' | 'inactive';
   is_active: boolean;
   total_users?: number;
+  practices?: Array<{ id: number; name: string; status: string }>;
   created_at: string;
   updated_at: string;
 }
@@ -15,6 +16,7 @@ export interface CreateRegionData {
   name: string;
   code: string;
   status?: 'active' | 'inactive';
+  practiceIds?: number[];
 }
 
 export const regionApi = {

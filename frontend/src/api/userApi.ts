@@ -1,10 +1,20 @@
 import { apiClient } from './apiClient';
 
+export interface BenchRecord {
+  id: number;
+  userId: number;
+  startDate: string;
+  endDate: string | null;
+  reason?: string | null;
+  durationDays: number;
+}
+
 export interface UserDetail {
   id: number;
   name: string;
   email: string;
   employeeId: string;
+  mustResetPassword: boolean;
   roleIds: number[];
   roles: string[];
   roleId?: number;
@@ -14,8 +24,14 @@ export interface UserDetail {
   practiceId?: number | null;
   practice?: string | null;
   profileImageUrl?: string | null;
+  phoneNumber?: string | null;
+  designation?: string | null;
+  experienceYears?: number | null;
+  currentStatus?: string | null;
   status: string;
   joiningDate?: string | null;
+  benchRecords?: BenchRecord[];
+  maxBenchDays?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,13 +39,16 @@ export interface UserDetail {
 export interface CreateUserData {
   name: string;
   email: string;
-  password: string;
-  employeeId: string;
+  password?: string;
+  employeeId?: string;
   roleIds: number[];
   roleId?: number;
   regionId?: number | null;
   practiceId?: number | null;
+  phoneNumber?: string | null;
+  designation?: string | null;
   status?: string;
+  profileImageUrl?: string | null;
 }
 
 export interface UpdateUserData {
@@ -41,7 +60,12 @@ export interface UpdateUserData {
   roleId?: number;
   regionId?: number | null;
   practiceId?: number | null;
+  phoneNumber?: string | null;
+  designation?: string | null;
+  experienceYears?: number | null;
+  currentStatus?: string | null;
   status?: string;
+  profileImageUrl?: string | null;
 }
 
 export interface RoleCatalog {
@@ -60,79 +84,124 @@ export interface RegionCatalog {
 export interface PracticeCatalog {
   id: number;
   name: string;
+  regionId?: number | null;
+  regionName?: string | null;
   leadUserId?: number | null;
   leadUserName?: string | null;
   isActive: boolean;
 }
 
-export interface UserListResponse {
+export interface UsersResponse {
   success: boolean;
   message: string;
   data: UserDetail[];
 }
 
-export interface SingleUserResponse {
+export interface UserResponse {
   success: boolean;
   message: string;
   data: UserDetail;
 }
 
+export interface BenchHistoryResponse {
+  success: boolean;
+  message: string;
+  data: {
+    userId: number;
+    userName: string;
+    employeeId: string;
+    currentStatus: string;
+    totalBenchDays: number;
+    benchRecords: BenchRecord[];
+  };
+}
+
+export interface RolesResponse {
+  success: boolean;
+  message: string;
+  data: RoleCatalog[];
+}
+
+export interface RegionsResponse {
+  success: boolean;
+  message: string;
+  data: RegionCatalog[];
+}
+
+export interface PracticesResponse {
+  success: boolean;
+  message: string;
+  data: PracticeCatalog[];
+}
+
 export const userApi = {
-  getUsers: async (filters?: { search?: string; roleId?: number; status?: string }): Promise<UserDetail[]> => {
+  getUsers: async (filters?: {
+    search?: string;
+    roleId?: number;
+    regionId?: number;
+    status?: string;
+  }): Promise<UserDetail[]> => {
+    return userApi.getAllUsers(filters);
+  },
+
+  getAllUsers: async (filters?: {
+    search?: string;
+    roleId?: number;
+    regionId?: number;
+    status?: string;
+  }): Promise<UserDetail[]> => {
     const params = new URLSearchParams();
     if (filters?.search) params.append('search', filters.search);
     if (filters?.roleId) params.append('roleId', filters.roleId.toString());
+    if (filters?.regionId) params.append('regionId', filters.regionId.toString());
     if (filters?.status) params.append('status', filters.status);
 
-    const response = await apiClient.get<UserListResponse>(`/users?${params.toString()}`);
+    const response = await apiClient.get<UsersResponse>(`/users?${params.toString()}`);
     return response.data.data;
   },
 
   getUserById: async (id: number): Promise<UserDetail> => {
-    const response = await apiClient.get<SingleUserResponse>(`/users/${id}`);
+    const response = await apiClient.get<UserResponse>(`/users/${id}`);
+    return response.data.data;
+  },
+
+  getUserBenchHistory: async (id: number) => {
+    const response = await apiClient.get<BenchHistoryResponse>(`/users/${id}/bench-history`);
     return response.data.data;
   },
 
   createUser: async (data: CreateUserData): Promise<UserDetail> => {
-    const response = await apiClient.post<SingleUserResponse>('/users', data);
+    const response = await apiClient.post<UserResponse>('/users', data);
     return response.data.data;
   },
 
   updateUser: async (id: number, data: UpdateUserData): Promise<UserDetail> => {
-    const response = await apiClient.put<SingleUserResponse>(`/users/${id}`, data);
+    const response = await apiClient.put<UserResponse>(`/users/${id}`, data);
     return response.data.data;
   },
 
   updateUserStatus: async (id: number, status: string): Promise<UserDetail> => {
-    const response = await apiClient.patch<SingleUserResponse>(`/users/${id}/status`, { status });
+    const response = await apiClient.patch<UserResponse>(`/users/${id}/status`, { status });
     return response.data.data;
   },
 
   deleteUser: async (id: number): Promise<void> => {
-    await apiClient.delete<{ success: boolean; message: string }>(`/users/${id}`);
+    await apiClient.delete(`/users/${id}`);
   },
 
   getRoles: async (): Promise<RoleCatalog[]> => {
-    const response = await apiClient.get('/roles');
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    return [];
+    const response = await apiClient.get<RolesResponse>('/roles');
+    return response.data.data;
   },
 
   getRegions: async (): Promise<RegionCatalog[]> => {
-    const response = await apiClient.get('/regions');
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    return [];
+    const response = await apiClient.get<RegionsResponse>('/regions');
+    return response.data.data;
   },
 
-  getPractices: async (): Promise<PracticeCatalog[]> => {
-    const response = await apiClient.get('/practices');
-    const data = response.data;
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.data)) return data.data;
-    return [];
+  getPractices: async (regionId?: number): Promise<PracticeCatalog[]> => {
+    const url = regionId ? `/practices?regionId=${regionId}` : '/practices';
+    const response = await apiClient.get<PracticesResponse>(url);
+    return response.data.data;
   },
 };

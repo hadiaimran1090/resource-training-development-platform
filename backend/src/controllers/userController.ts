@@ -10,10 +10,11 @@ export class UserController {
     try {
       const search = req.query.search ? String(req.query.search) : undefined;
       const roleId = req.query.roleId ? parseInt(String(req.query.roleId), 10) : undefined;
+      const regionId = req.query.regionId ? parseInt(String(req.query.regionId), 10) : undefined;
       const status = req.query.status ? String(req.query.status) : undefined;
       const currentUserId = (req as AuthenticatedRequest).user?.userId;
 
-      const users = await UserService.getAllUsers({ search, roleId, status }, currentUserId);
+      const users = await UserService.getAllUsers({ search, roleId, regionId, status }, currentUserId);
 
       res.status(200).json({
         success: true,
@@ -58,6 +59,38 @@ export class UserController {
   }
 
   /**
+   * GET /api/users/:id/bench-history
+   */
+  static async getUserBenchHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid user ID.',
+        });
+        return;
+      }
+
+      const benchData = await UserService.getUserBenchHistory(id);
+
+      res.status(200).json({
+        success: true,
+        message: 'Bench history retrieved successfully',
+        data: {
+          ...benchData,
+          totalBenchDays: benchData.maxBenchDays,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve bench history.',
+      });
+    }
+  }
+
+  /**
    * POST /api/users
    */
   static async createUser(req: Request, res: Response): Promise<void> {
@@ -91,7 +124,10 @@ export class UserController {
         return;
       }
 
-      const updatedUser = await UserService.updateUser(id, req.body);
+      const authUser = (req as AuthenticatedRequest).user;
+      const isAdmin = authUser?.roles?.includes('System Administrator') || authUser?.role === 'System Administrator';
+
+      const updatedUser = await UserService.updateUser(id, req.body, isAdmin);
 
       res.status(200).json({
         success: true,
@@ -206,9 +242,10 @@ export class UserController {
   /**
    * GET /api/practices
    */
-  static async getPractices(_req: Request, res: Response): Promise<void> {
+  static async getPractices(req: Request, res: Response): Promise<void> {
     try {
-      const practices = await UserService.getPractices();
+      const regionId = req.query.regionId ? parseInt(String(req.query.regionId), 10) : undefined;
+      const practices = regionId ? await UserService.getPracticesByRegion(regionId) : await UserService.getPractices();
       res.status(200).json({
         success: true,
         message: 'Practices retrieved successfully',
@@ -218,6 +255,33 @@ export class UserController {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to retrieve practices.',
+      });
+    }
+  }
+
+  /**
+   * GET /api/regions/:regionId/practices
+   */
+  static async getPracticesByRegion(req: Request, res: Response): Promise<void> {
+    try {
+      const regionId = parseInt(String(req.params.regionId), 10);
+      if (isNaN(regionId)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid region ID.',
+        });
+        return;
+      }
+      const practices = await UserService.getPracticesByRegion(regionId);
+      res.status(200).json({
+        success: true,
+        message: 'Practices for region retrieved successfully',
+        data: practices,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve practices for region.',
       });
     }
   }

@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Layers, Eye, EyeOff, Lock, Mail, AlertCircle, Loader2, Shield } from 'lucide-react';
+import { Layers, Eye, EyeOff, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedTargetRole, setSelectedTargetRole] = useState<string>('auto');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,18 +26,9 @@ export const LoginPage: React.FC = () => {
       setSubmitting(true);
       const loggedUser = await login(email, password);
       const userRoles = loggedUser.roles || (loggedUser.role ? [loggedUser.role] : []);
+      const activeRole = userRoles[0];
 
-      let activeRole = userRoles[0];
-
-      if (selectedTargetRole !== 'auto') {
-        if (userRoles.includes(selectedTargetRole)) {
-          activeRole = selectedTargetRole;
-        } else {
-          setError(`Your account does not have the "${selectedTargetRole}" role. Logging in as ${activeRole}.`);
-        }
-      }
-
-      // Redirect based on selected active role
+      // Redirect based on assigned role
       if (activeRole === 'System Administrator') {
         navigate('/admin/dashboard');
       } else if (activeRole === 'Practice Lead') {
@@ -136,30 +126,6 @@ export const LoginPage: React.FC = () => {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-            </div>
-          </div>
-
-          {/* Target Role Selector */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 pl-1 flex items-center justify-between">
-              <span>Login Dashboard Role</span>
-            </label>
-            <div className="relative">
-              <Shield className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={selectedTargetRole}
-                onChange={(e) => setSelectedTargetRole(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-              >
-                <option value="auto" className="bg-slate-900 text-white">Auto-Detect Role (Default)</option>
-                <option value="System Administrator" className="bg-slate-900 text-white">System Administrator</option>
-                <option value="Practice Lead" className="bg-slate-900 text-white">Practice Lead</option>
-                <option value="Regional Lead" className="bg-slate-900 text-white">Regional Lead</option>
-                <option value="Training Manager" className="bg-slate-900 text-white">Training Manager</option>
-                <option value="Mentor" className="bg-slate-900 text-white">Mentor / SME</option>
-                <option value="Resource" className="bg-slate-900 text-white">Resource</option>
-                <option value="Management" className="bg-slate-900 text-white">Management</option>
-              </select>
             </div>
           </div>
 

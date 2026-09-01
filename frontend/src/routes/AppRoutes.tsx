@@ -1,8 +1,9 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { LoginPage } from '../pages/auth/LoginPage';
+import { ForcePasswordResetPage } from '../pages/auth/ForcePasswordResetPage';
 import { ManagementDashboard } from '../pages/management/ManagementDashboard';
 import { PracticeLeadDashboard } from '../pages/practice-lead/PracticeLeadDashboard';
 import { ResourceDashboard } from '../pages/resource/ResourceDashboard';
@@ -11,6 +12,7 @@ import { AdminDashboard } from '../pages/admin/AdminDashboard';
 import { TrainingManagerDashboard } from '../pages/training-manager/TrainingManagerDashboard';
 import { MentorDashboard } from '../pages/mentor/MentorDashboard';
 import { UserManagementPage } from '../pages/admin/UserManagementPage';
+import { UserDetailPage } from '../pages/admin/UserDetailPage';
 import { RegionManagementPage } from '../pages/admin/RegionManagementPage';
 import { PracticeManagementPage } from '../pages/admin/PracticeManagementPage';
 import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
@@ -57,7 +59,8 @@ const RoleBasedDefaultRedirect: React.FC = () => {
 };
 
 const ProtectedLayout: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -69,6 +72,10 @@ const ProtectedLayout: React.FC = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.mustResetPassword && location.pathname !== '/force-password-reset') {
+    return <Navigate to="/force-password-reset" replace />;
   }
 
   return (
@@ -88,6 +95,14 @@ const ProtectedLayout: React.FC = () => {
           element={
             <RequireRole allowedRoles={['System Administrator']}>
               <UserManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/users/:id"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <UserDetailPage />
             </RequireRole>
           }
         />
@@ -171,14 +186,11 @@ const ProtectedLayout: React.FC = () => {
             </RequireRole>
           }
         />
-        <Route
-          path="/resource/profile"
-          element={
-            <RequireRole allowedRoles={['Resource']}>
-              <ResourceProfilePage />
-            </RequireRole>
-          }
-        />
+        <Route path="/profile" element={<ResourceProfilePage />} />
+        <Route path="/resource/profile" element={<ResourceProfilePage />} />
+        <Route path="/admin/profile" element={<ResourceProfilePage />} />
+        <Route path="/regional-lead/profile" element={<ResourceProfilePage />} />
+        <Route path="/practice-lead/profile" element={<ResourceProfilePage />} />
         <Route path="*" element={<RoleBasedDefaultRedirect />} />
       </Routes>
     </DashboardLayout>
@@ -189,7 +201,9 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/force-password-reset" element={<ForcePasswordResetPage />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );
 };
+

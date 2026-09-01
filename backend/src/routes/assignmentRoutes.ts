@@ -16,10 +16,10 @@ router.use(authenticateToken);
 router.get('/', getAssignments);
 router.get('/assignable-resources', getAssignableResources);
 
-// Authorized admin & leads endpoints
-router.post('/', requireRoles('System Administrator', 'Regional Lead', 'Practice Lead'), createAssignment);
-router.put('/:id', requireRoles('System Administrator', 'Regional Lead', 'Practice Lead'), updateAssignment);
-router.patch('/:id/status', requireRoles('System Administrator', 'Regional Lead', 'Practice Lead'), toggleAssignmentStatus);
-router.delete('/:id', requireRoles('System Administrator', 'Regional Lead', 'Practice Lead'), deleteAssignment);
+// Assignment creation strictly restricted to Regional Lead (Requirement #10)
+router.post('/', requireRoles('Regional Lead'), createAssignment);
+router.put('/:id', requireRoles('System Administrator', 'Regional Lead'), updateAssignment);
+router.patch('/:id/status', requireRoles('System Administrator', 'Regional Lead'), toggleAssignmentStatus);
+router.delete('/:id', requireRoles('System Administrator', 'Regional Lead'), deleteAssignment);
 
 export default router;

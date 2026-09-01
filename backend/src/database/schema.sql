@@ -1,5 +1,5 @@
 -- RTDP Database Schema
--- Industry Standard DDL Architecture
+-- Industry Standard DDL Architecture (Updated Version 2.0)
 
 -- 1. Create Roles Table
 CREATE TABLE IF NOT EXISTS roles (
@@ -20,11 +20,12 @@ CREATE TABLE IF NOT EXISTS regions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Create Practices Table
+-- 3. Create Practices Table (1-to-Many with Regions)
 CREATE TABLE IF NOT EXISTS practices (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
     description TEXT,
+    region_id INT REFERENCES regions(id) ON DELETE CASCADE,
     lead_user_id INT, -- FK added after users table creation
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     is_active BOOLEAN DEFAULT TRUE,
@@ -32,21 +33,31 @@ CREATE TABLE IF NOT EXISTS practices (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Create Users Table
+-- Safety ALTER TABLE migration statements (Auto-add new columns to pre-existing tables)
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS region_id INT REFERENCES regions(id) ON DELETE CASCADE;
+
+-- 4. Employee ID Sequence
+CREATE SEQUENCE IF NOT EXISTS employee_id_seq START WITH 1001;
+
+-- 5. Create Users Table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    employee_id VARCHAR(30) UNIQUE NOT NULL,
+    employee_id VARCHAR(30) UNIQUE NOT NULL DEFAULT CONCAT('EMP-', LPAD(nextval('employee_id_seq')::text, 4, '0')),
+    must_reset_password BOOLEAN DEFAULT TRUE NOT NULL,
     region_id INT REFERENCES regions(id) ON DELETE SET NULL,
     practice_id INT REFERENCES practices(id) ON DELETE SET NULL,
     profile_image_url TEXT,
     status VARCHAR(20) DEFAULT 'active',
-    joining_date DATE,
+    joining_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_reset_password BOOLEAN DEFAULT TRUE NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS joining_date DATE DEFAULT CURRENT_DATE;
 
 -- Foreign Key: practices.lead_user_id -> users(id)
 DO $$
@@ -61,20 +72,21 @@ BEGIN
     END IF;
 END $$;
 
--- 5. Create User Roles Junction Table (Many-to-Many: Users <-> Roles)
+-- 6. Create User Roles Junction Table (Many-to-Many: Users <-> Roles)
 CREATE TABLE IF NOT EXISTS user_roles (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role_id INT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, role_id)
 );
 
--- 6. Create Resources Table (1:1 Extension of Users for Resource Role)
+-- 7. Create Resources / Universal User Profiles Extension Table (1:1 Extension for ALL Users)
 CREATE TABLE IF NOT EXISTS resources (
     id SERIAL PRIMARY KEY,
     user_id INT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     region_id INT REFERENCES regions(id) ON DELETE SET NULL,
     practice_id INT REFERENCES practices(id) ON DELETE SET NULL,
     regional_lead_id INT REFERENCES users(id) ON DELETE SET NULL,
+    phone_number VARCHAR(30),
     designation VARCHAR(100) NOT NULL DEFAULT 'Engineering Resource',
     experience_years NUMERIC(4,1) DEFAULT 1.0,
     current_status VARCHAR(30) DEFAULT 'bench' CHECK (current_status IN ('assigned', 'bench', 'training')),
@@ -82,10 +94,13 @@ CREATE TABLE IF NOT EXISTS resources (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Create Assignments Table
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+
+-- 8. Create Assignments Table (Only Regional Leads Can Create)
 CREATE TABLE IF NOT EXISTS assignments (
     id SERIAL PRIMARY KEY,
     resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    assigned_by_user_id INT REFERENCES users(id) ON DELETE SET NULL,
     client_name VARCHAR(150) NOT NULL,
     project_name VARCHAR(150),
     start_date DATE NOT NULL,
@@ -95,7 +110,22 @@ CREATE TABLE IF NOT EXISTS assignments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. Create Refresh Tokens Table
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS assigned_by_user_id INT REFERENCES users(id) ON DELETE SET NULL;
+
+
+-- 9. Create Dedicated Bench History Table
+CREATE TABLE IF NOT EXISTS bench_records (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    end_date DATE,
+    reason VARCHAR(255) DEFAULT 'Unassigned / Bench Transition',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. Create Refresh Tokens Table
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -110,12 +140,24 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 -- Indexes for Query Performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_employee_id ON users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_users_region_id ON users(region_id);
 CREATE INDEX IF NOT EXISTS idx_users_practice_id ON users(practice_id);
+CREATE INDEX IF NOT EXISTS idx_practices_region_id ON practices(region_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
 CREATE INDEX IF NOT EXISTS idx_resources_user_id ON resources(user_id);
 CREATE INDEX IF NOT EXISTS idx_resources_region_id ON resources(region_id);
-CREATE INDEX IF NOT EXISTS idx_resources_practice_id ON resources(practice_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_resource_id ON assignments(resource_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_by ON assignments(assigned_by_user_id);
+CREATE INDEX IF NOT EXISTS idx_bench_records_user_id ON bench_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+
+-- Safety Schema Migration Statements (Auto-adds new columns to pre-existing tables)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_reset_password BOOLEAN DEFAULT TRUE NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS joining_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS region_id INT REFERENCES regions(id) ON DELETE CASCADE;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS assigned_by_user_id INT REFERENCES users(id) ON DELETE SET NULL;
+
+

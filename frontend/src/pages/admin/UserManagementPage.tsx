@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { UserDetail, RoleCatalog } from '../../api/userApi';
 import { userApi } from '../../api/userApi';
 import { UserFormModal } from '../../components/admin/UserFormModal';
+import { BenchHistoryModal } from '../../components/admin/BenchHistoryModal';
 import {
   Users,
   UserPlus,
@@ -17,9 +19,11 @@ import {
   Building,
   Globe,
   Trash2,
+  History,
 } from 'lucide-react';
 
 export const UserManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserDetail[]>([]);
   const [roles, setRoles] = useState<RoleCatalog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +37,7 @@ export const UserManagementPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserDetail | null>(null);
+  const [selectedBenchUser, setSelectedBenchUser] = useState<{ id: number; name: string } | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<number | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserDetail | null>(null);
@@ -223,12 +228,16 @@ export const UserManagementPage: React.FC = () => {
                   <tr key={user.id} className="hover:bg-slate-50/60 transition-colors">
                     {/* User Name & Email */}
                     <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0 border border-blue-100">
+                      <div
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
+                        className="flex items-center gap-3 cursor-pointer group"
+                        title="Click to view complete user profile & bench history"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 font-bold flex items-center justify-center text-xs shrink-0 border border-blue-100 transition-colors">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{user.name}</div>
+                          <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{user.name}</div>
                           <div className="text-[11px] text-slate-400 font-normal">{user.email}</div>
                         </div>
                       </div>
@@ -301,6 +310,13 @@ export const UserManagementPage: React.FC = () => {
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          onClick={() => setSelectedBenchUser({ id: user.id, name: user.name })}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="View Bench History"
+                        >
+                          <History className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleOpenEditModal(user)}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Edit User"
@@ -349,6 +365,15 @@ export const UserManagementPage: React.FC = () => {
         onSuccess={fetchUsersAndRoles}
         userToEdit={selectedUserForEdit}
       />
+
+      {/* Bench History Modal */}
+      {selectedBenchUser && (
+        <BenchHistoryModal
+          userId={selectedBenchUser.id}
+          userName={selectedBenchUser.name}
+          onClose={() => setSelectedBenchUser(null)}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {userToDelete && (

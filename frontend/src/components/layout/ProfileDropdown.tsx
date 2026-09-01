@@ -1,19 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, Shield, Settings } from 'lucide-react';
+import { LogOut, Shield, User } from 'lucide-react';
 
 interface ProfileDropdownProps {
   onOpenProfileModal?: () => void;
 }
 
-export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileModal }) => {
+export const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -30,8 +29,12 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
     navigate('/login');
   };
 
-  const primaryRole = user?.roles?.[0] || user?.role || 'User';
-  const isResource = primaryRole === 'Resource';
+  const handleGoToProfile = () => {
+    setIsOpen(false);
+    navigate('/profile');
+  };
+
+  const primaryRole = user?.roles?.[0] || user?.role || 'Employee';
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -40,7 +43,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="p-0.5 rounded-full hover:ring-4 hover:ring-blue-500/15 transition-all focus:outline-hidden ring-2 ring-blue-500/30 shadow-sm cursor-pointer group"
-        title="Click for Profile Options"
+        title="User Options"
       >
         <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-600 text-white font-bold flex items-center justify-center border-2 border-white shadow-2xs shrink-0">
           {user?.profileImageUrl ? (
@@ -54,8 +57,12 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
       {/* Floating Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-          {/* Header Info */}
-          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          {/* Header Info (Clicking navigates to /profile) */}
+          <div
+            onClick={handleGoToProfile}
+            className="p-4 bg-slate-50 hover:bg-blue-50/60 transition-colors cursor-pointer border-b border-slate-100 flex items-center gap-3"
+            title="View Full Profile"
+          >
             <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-600 text-white font-bold flex items-center justify-center border border-white shadow-2xs shrink-0">
               {user?.profileImageUrl ? (
                 <img src={user.profileImageUrl} alt={user.name} className="w-full h-full object-cover" />
@@ -75,18 +82,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onOpenProfileM
 
           {/* Menu Actions */}
           <div className="p-1.5 space-y-0.5">
-            {!isResource && onOpenProfileModal && (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  onOpenProfileModal();
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors text-left cursor-pointer"
-              >
-                <Settings className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Edit Profile & Password</span>
-              </button>
-            )}
+            <button
+              onClick={handleGoToProfile}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl transition-colors text-left cursor-pointer"
+            >
+              <User className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>My Profile</span>
+            </button>
 
             <button
               onClick={handleLogout}

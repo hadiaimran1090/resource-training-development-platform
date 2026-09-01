@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import type { Region, CreateRegionData } from '../../api/regionApi';
 import { regionApi } from '../../api/regionApi';
-import { Globe, Plus, Edit2, CheckCircle2, XCircle, Search, Loader2, AlertCircle, Users } from 'lucide-react';
+import type { Practice } from '../../api/practiceApi';
+import { practiceApi } from '../../api/practiceApi';
+import { Globe, Plus, Edit2, CheckCircle2, XCircle, Search, Loader2, AlertCircle, Users, Building } from 'lucide-react';
 
 export const RegionManagementPage: React.FC = () => {
   const [regions, setRegions] = useState<Region[]>([]);
+  const [allPractices, setAllPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,24 +18,30 @@ export const RegionManagementPage: React.FC = () => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [selectedPracticeIds, setSelectedPracticeIds] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchRegions = async () => {
+  const fetchRegionsAndPractices = async () => {
     try {
       setLoading(true);
-      const data = await regionApi.getRegions();
-      setRegions(Array.isArray(data) ? data : []);
+      const [regionsData, practicesData] = await Promise.all([
+        regionApi.getRegions(),
+        practiceApi.getPractices(),
+      ]);
+      setRegions(Array.isArray(regionsData) ? regionsData : []);
+      setAllPractices(Array.isArray(practicesData) ? practicesData : []);
       setError(null);
     } catch (err: any) {
-      setError('Failed to fetch regions.');
+      setError('Failed to fetch region data.');
       setRegions([]);
+      setAllPractices([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRegions();
+    fetchRegionsAndPractices();
   }, []);
 
   const handleOpenCreateModal = () => {
@@ -40,6 +49,7 @@ export const RegionManagementPage: React.FC = () => {
     setName('');
     setCode('');
     setStatus('active');
+    setSelectedPracticeIds([]);
     setIsModalOpen(true);
   };
 
@@ -48,7 +58,14 @@ export const RegionManagementPage: React.FC = () => {
     setName(reg.name);
     setCode(reg.code);
     setStatus(reg.status);
+    setSelectedPracticeIds(reg.practices ? reg.practices.map((p) => p.id) : []);
     setIsModalOpen(true);
+  };
+
+  const togglePracticeSelection = (pId: number) => {
+    setSelectedPracticeIds((prev) =>
+      prev.includes(pId) ? prev.filter((id) => id !== pId) : [...prev, pId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +78,7 @@ export const RegionManagementPage: React.FC = () => {
         name: name.trim(),
         code: code.trim().toUpperCase(),
         status,
+        practiceIds: selectedPracticeIds,
       };
 
       if (editingRegion) {
@@ -70,7 +88,7 @@ export const RegionManagementPage: React.FC = () => {
       }
 
       setIsModalOpen(false);
-      fetchRegions();
+      fetchRegionsAndPractices();
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Operation failed.';
       alert(msg);
@@ -83,7 +101,7 @@ export const RegionManagementPage: React.FC = () => {
     const newStatus = reg.status === 'active' ? 'inactive' : 'active';
     try {
       await regionApi.toggleRegionStatus(reg.id, newStatus);
-      fetchRegions();
+      fetchRegionsAndPractices();
     } catch (err: any) {
       alert('Failed to toggle status.');
     }
@@ -107,7 +125,7 @@ export const RegionManagementPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Regions Management</h1>
-            <p className="text-xs text-slate-500 font-medium">Manage enterprise operational regions and status.</p>
+            <p className="text-xs text-slate-500 font-medium">Manage enterprise operational regions and regional practice associations.</p>
           </div>
         </div>
 
@@ -157,6 +175,7 @@ export const RegionManagementPage: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-6 py-3.5">Region Name</th>
                   <th className="px-6 py-3.5">Region Code</th>
+                  <th className="px-6 py-3.5">Associated Practices</th>
                   <th className="px-6 py-3.5">Assigned Users</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
@@ -167,9 +186,26 @@ export const RegionManagementPage: React.FC = () => {
                   <tr key={reg.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900">{reg.name}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-slate-100 px-2 py-0.5 rounded font-mono text-[11px] text-slate-700">
+                      <span className="bg-slate-100 px-2 py-0.5 rounded font-mono text-[11px] text-slate-700 font-bold">
                         {reg.code}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {reg.practices && reg.practices.length > 0 ? (
+                          reg.practices.map((p) => (
+                            <span
+                              key={p.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60"
+                            >
+                              <Building className="w-2.5 h-2.5" />
+                              {p.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">No practices linked</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
@@ -219,7 +255,7 @@ export const RegionManagementPage: React.FC = () => {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="font-extrabold text-base text-slate-900">
               {editingRegion ? 'Edit Region' : 'Add New Region'}
             </h3>
@@ -246,6 +282,28 @@ export const RegionManagementPage: React.FC = () => {
                   placeholder="e.g. NA"
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
+              </div>
+
+              {/* Multiple Practices Selection Checklist */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">Associate Practices to Region</label>
+                <div className="max-h-36 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  {allPractices.length === 0 ? (
+                    <div className="text-[11px] text-slate-400 italic">No practices created yet.</div>
+                  ) : (
+                    allPractices.map((prac) => (
+                      <label key={prac.id} className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedPracticeIds.includes(prac.id)}
+                          onChange={() => togglePracticeSelection(prac.id)}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{prac.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1">

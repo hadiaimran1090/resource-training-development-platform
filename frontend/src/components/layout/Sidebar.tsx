@@ -97,6 +97,7 @@ const regionalLeadSidebar: NavSection[] = [
       { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -124,6 +125,7 @@ const practiceLeadSidebar: NavSection[] = [
     items: [
       { name: 'Practice Lead Dashboard', path: '/practice-lead/dashboard', icon: LayoutDashboard },
       { name: 'Org Bench Overview', path: '/practice-lead/dashboard#bench-overview', icon: Armchair },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -143,6 +145,7 @@ const adminSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'System Administrator Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -177,6 +180,7 @@ const trainingManagerSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Training Manager Dashboard', path: '/training-manager/dashboard', icon: LayoutDashboard },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -205,6 +209,7 @@ const mentorSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Mentor / SME Dashboard', path: '/mentor/dashboard', icon: LayoutDashboard },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -225,6 +230,7 @@ const managementSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Management Dashboard', path: '/management/dashboard', icon: LayoutDashboard },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
@@ -241,26 +247,65 @@ const managementSidebar: NavSection[] = [
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const currentPath = location.pathname;
 
-  // Determine exact sidebar config based on current dashboard route
-  let navSections: NavSection[] = managementSidebar;
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
 
-  if (currentPath.startsWith('/resource')) {
-    navSections = resourceSidebar;
-  } else if (currentPath.startsWith('/regional-lead')) {
-    navSections = regionalLeadSidebar;
-  } else if (currentPath.startsWith('/practice-lead')) {
-    navSections = practiceLeadSidebar;
-  } else if (currentPath.startsWith('/admin')) {
-    navSections = adminSidebar;
-  } else if (currentPath.startsWith('/training-manager')) {
-    navSections = trainingManagerSidebar;
-  } else if (currentPath.startsWith('/mentor')) {
-    navSections = mentorSidebar;
-  } else if (currentPath.startsWith('/management')) {
-    navSections = managementSidebar;
+  const roleSidebarMap: Record<string, NavSection[]> = {
+    'System Administrator': adminSidebar,
+    'Regional Lead': regionalLeadSidebar,
+    'Practice Lead': practiceLeadSidebar,
+    'Training Manager': trainingManagerSidebar,
+    'Mentor': mentorSidebar,
+    'Resource': resourceSidebar,
+    'Management': managementSidebar,
+  };
+
+  // Determine aggregated navSections for multi-role users
+  let navSections: NavSection[] = [];
+
+  if (userRoles.length > 0) {
+    const sectionMap = new Map<string, NavItem[]>();
+
+    userRoles.forEach((role) => {
+      const config = roleSidebarMap[role];
+      if (config) {
+        config.forEach((section) => {
+          const existingItems = sectionMap.get(section.title) || [];
+          section.items.forEach((item) => {
+            if (!existingItems.some((existing) => existing.path === item.path)) {
+              existingItems.push(item);
+            }
+          });
+          sectionMap.set(section.title, existingItems);
+        });
+      }
+    });
+
+    navSections = Array.from(sectionMap.entries()).map(([title, items]) => ({
+      title,
+      items,
+    }));
+  }
+
+  // Fallback to route-based resolution if roles not loaded
+  if (navSections.length === 0) {
+    if (currentPath.startsWith('/resource')) {
+      navSections = resourceSidebar;
+    } else if (currentPath.startsWith('/regional-lead')) {
+      navSections = regionalLeadSidebar;
+    } else if (currentPath.startsWith('/practice-lead')) {
+      navSections = practiceLeadSidebar;
+    } else if (currentPath.startsWith('/admin')) {
+      navSections = adminSidebar;
+    } else if (currentPath.startsWith('/training-manager')) {
+      navSections = trainingManagerSidebar;
+    } else if (currentPath.startsWith('/mentor')) {
+      navSections = mentorSidebar;
+    } else {
+      navSections = managementSidebar;
+    }
   }
 
   return (

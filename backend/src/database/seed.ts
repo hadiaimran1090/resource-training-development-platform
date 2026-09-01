@@ -71,34 +71,51 @@ export const seedDatabase = async () => {
       );
     }
 
-    // 4. Seed Initial Practices
-    const practices = ['Software Engineering', 'Quality Assurance', 'Data & Analytics', 'DevOps & Cloud'];
-    for (const practiceName of practices) {
-      await client.query(
-        `INSERT INTO practices (name, is_active, status) VALUES ($1, TRUE, 'active') ON CONFLICT (name) DO NOTHING`,
-        [practiceName]
-      );
-    }
-
-    // 5. Fetch Role, Region, and Practice mappings for User creation
+    // 4. Fetch Role, Region mappings for Practice creation
     const rolesRes = await client.query(`SELECT id, name FROM roles`);
     const regionsRes = await client.query(`SELECT id, name FROM regions`);
-    const practicesRes = await client.query(`SELECT id, name FROM practices`);
 
     const roleMap = new Map<string, number>(rolesRes.rows.map((r: any) => [r.name, r.id]));
     const regionMap = new Map<string, number>(regionsRes.rows.map((r: any) => [r.name, r.id]));
-    const practiceMap = new Map<string, number>(practicesRes.rows.map((p: any) => [p.name, p.id]));
+
+    // 5. Seed Initial Practices with Region Mapping (1:N Region -> Practice)
+    const apacId = regionMap.get('APAC');
+    const ksaId = regionMap.get('KSA');
+    const uaeId = regionMap.get('UAE');
+    const vsiId = regionMap.get('VSI');
+
+    const practicesToSeed = [
+      { name: 'Software Engineering', regionId: apacId },
+      { name: 'Quality Assurance', regionId: vsiId },
+      { name: 'Data & Analytics', regionId: ksaId },
+      { name: 'DevOps & Cloud', regionId: uaeId },
+    ];
+
+    for (const p of practicesToSeed) {
+      if (p.regionId) {
+        await client.query(
+          `INSERT INTO practices (name, region_id, is_active, status) VALUES ($1, $2, TRUE, 'active')
+           ON CONFLICT (name) DO UPDATE SET region_id = EXCLUDED.region_id, status = 'active', is_active = TRUE`,
+          [p.name, p.regionId]
+        );
+      }
+    }
+
+    // Refresh practices map after insert
+    const updatedPracticesRes = await client.query(`SELECT id, name, region_id FROM practices`);
+    const practiceMap = new Map<string, number>(updatedPracticesRes.rows.map((p: any) => [p.name, p.id]));
+
 
     // Default password hash using bcrypt
     const defaultPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@786';
     const commonPasswordHash = await bcrypt.hash(defaultPassword, 10);
 
-    // 6. Seed Default Platform & Demo Users
+    // 5. Seed Default Platform & Demo Users (must_reset_password set to FALSE for dev test accounts)
     const usersToSeed = [
       {
         name: 'System Administrator',
         email: 'admin@rtdp.com',
-        employeeId: 'RTDP-ADMIN-001',
+        employeeId: 'EMP-0001',
         roleNames: ['System Administrator'],
         regionName: 'APAC',
         practiceName: null,
@@ -106,7 +123,7 @@ export const seedDatabase = async () => {
       {
         name: 'Sarah Practice Lead',
         email: 'sarah@rtdp.com',
-        employeeId: 'RTDP-PL-001',
+        employeeId: 'EMP-0002',
         roleNames: ['Practice Lead'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
@@ -114,7 +131,7 @@ export const seedDatabase = async () => {
       {
         name: 'Rohan Regional Lead',
         email: 'rohan@rtdp.com',
-        employeeId: 'RTDP-RL-001',
+        employeeId: 'EMP-0003',
         roleNames: ['Regional Lead'],
         regionName: 'KSA',
         practiceName: null,
@@ -122,7 +139,7 @@ export const seedDatabase = async () => {
       {
         name: 'Tania Training Manager',
         email: 'tania@rtdp.com',
-        employeeId: 'RTDP-TM-001',
+        employeeId: 'EMP-0004',
         roleNames: ['Training Manager'],
         regionName: 'UAE',
         practiceName: null,
@@ -130,7 +147,7 @@ export const seedDatabase = async () => {
       {
         name: 'Michael Mentor',
         email: 'michael@rtdp.com',
-        employeeId: 'RTDP-MNT-001',
+        employeeId: 'EMP-0005',
         roleNames: ['Mentor', 'Practice Lead'],
         regionName: 'VSI',
         practiceName: 'Quality Assurance',
@@ -138,7 +155,7 @@ export const seedDatabase = async () => {
       {
         name: 'Rachel Resource',
         email: 'rachel@rtdp.com',
-        employeeId: 'RTDP-RES-001',
+        employeeId: 'EMP-0006',
         roleNames: ['Resource'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
@@ -146,7 +163,7 @@ export const seedDatabase = async () => {
       {
         name: 'Marcus Management',
         email: 'marcus@rtdp.com',
-        employeeId: 'RTDP-MGMT-001',
+        employeeId: 'EMP-0007',
         roleNames: ['Management'],
         regionName: 'APAC',
         practiceName: null,
@@ -161,8 +178,8 @@ export const seedDatabase = async () => {
       const userCheck = await client.query(`SELECT id FROM users WHERE email = $1`, [u.email]);
       if (userCheck.rows.length === 0) {
         const userInsertRes = await client.query(
-          `INSERT INTO users (name, email, password_hash, employee_id, region_id, practice_id, status)
-           VALUES ($1, $2, $3, $4, $5, $6, 'active')
+          `INSERT INTO users (name, email, password_hash, employee_id, must_reset_password, region_id, practice_id, status)
+           VALUES ($1, $2, $3, $4, FALSE, $5, $6, 'active')
            RETURNING id`,
           [
             u.name,
@@ -189,41 +206,63 @@ export const seedDatabase = async () => {
         }
       }
 
-      // 7. Seed Sample Resource Profile & Assignments for Resource Role Users
-      if (u.roleNames.includes('Resource')) {
-        const regionalLeadCheck = await client.query(
-          `SELECT id FROM users WHERE email = 'rohan@rtdp.com'`
-        );
-        const regionalLeadId = regionalLeadCheck.rows[0]?.id || null;
+      // 6. Universal Profile Creation in resources table for ALL users (1:1 Extension)
+      const regionalLeadCheck = await client.query(`SELECT id FROM users WHERE email = 'rohan@rtdp.com'`);
+      const regionalLeadId = regionalLeadCheck.rows[0]?.id || null;
 
-        const resInsert = await client.query(
-          `INSERT INTO resources (user_id, region_id, practice_id, regional_lead_id, designation, experience_years, current_status)
-           VALUES ($1, $2, $3, $4, 'Senior Software Engineer', 3.5, 'bench')
-           ON CONFLICT (user_id) DO NOTHING
-           RETURNING id`,
-          [userId, regionId || null, practiceId || null, regionalLeadId]
-        );
+      const resInsert = await client.query(
+        `INSERT INTO resources (user_id, region_id, practice_id, regional_lead_id, phone_number, designation, experience_years, current_status)
+         VALUES ($1, $2, $3, $4, '+1-555-0192', 'Engineering Professional', 3.5, $5)
+         ON CONFLICT (user_id) DO NOTHING
+         RETURNING id`,
+        [
+          userId,
+          regionId || null,
+          practiceId || null,
+          regionalLeadId,
+          u.roleNames.includes('Resource') ? 'assigned' : 'bench',
+        ]
+      );
 
-        let resourceId = resInsert.rows[0]?.id;
-        if (!resourceId) {
-          const rFind = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [userId]);
-          resourceId = rFind.rows[0]?.id;
+      let resourceId = resInsert.rows[0]?.id;
+      if (!resourceId) {
+        const rFind = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [userId]);
+        resourceId = rFind.rows[0]?.id;
+      }
+
+      // 7. Seed Sample Bench History Records
+      const benchCheck = await client.query(`SELECT id FROM bench_records WHERE user_id = $1`, [userId]);
+      if (benchCheck.rows.length === 0) {
+        // Initial closed bench period (e.g. 30 days)
+        await client.query(
+          `INSERT INTO bench_records (user_id, start_date, end_date, reason)
+           VALUES ($1, '2026-01-01', '2026-01-31', 'Initial Onboarding & Bench Readiness')`,
+          [userId]
+        );
+        // Active bench record if not currently assigned
+        if (!u.roleNames.includes('Resource')) {
+          await client.query(
+            `INSERT INTO bench_records (user_id, start_date, end_date, reason)
+             VALUES ($1, '2026-02-01', NULL, 'Available for Bench Placement')`,
+            [userId]
+          );
         }
+      }
 
-        if (resourceId) {
-          const asgCheck = await client.query(`SELECT id FROM assignments WHERE resource_id = $1`, [resourceId]);
-          if (asgCheck.rows.length === 0) {
-            await client.query(
-              `INSERT INTO assignments (resource_id, client_name, project_name, start_date, status)
-               VALUES ($1, 'Acme Corp', 'Fintech Platform Modernization', '2026-01-15', 'active')`,
-              [resourceId]
-            );
-          }
+      // 8. Seed Sample Assignment for Resource role user (Created by Regional Lead)
+      if (u.roleNames.includes('Resource') && resourceId) {
+        const asgCheck = await client.query(`SELECT id FROM assignments WHERE resource_id = $1`, [resourceId]);
+        if (asgCheck.rows.length === 0 && regionalLeadId) {
+          await client.query(
+            `INSERT INTO assignments (resource_id, assigned_by_user_id, client_name, project_name, start_date, status)
+             VALUES ($1, $2, 'Acme Corp', 'Fintech Platform Modernization', '2026-02-01', 'active')`,
+            [resourceId, regionalLeadId]
+          );
         }
       }
     }
 
-    // 8. Link Practice Leads in Practices table
+    // 9. Link Practice Leads in Practices table
     const sarahUser = await client.query(`SELECT id FROM users WHERE email = 'sarah@rtdp.com'`);
     if (sarahUser.rows.length > 0 && practiceMap.has('Software Engineering')) {
       await client.query(
@@ -232,7 +271,10 @@ export const seedDatabase = async () => {
       );
     }
 
-    console.log('[Database] Connected & initialized successfully.');
+    // 10. Adjust employee_id sequence start
+    await client.query(`SELECT setval('employee_id_seq', 1000, true)`);
+
+    console.log('[Database] Connected & initialized successfully with updated architecture.');
   } catch (error: any) {
     console.error('[Database Error]', error?.message || error);
   } finally {
@@ -250,3 +292,4 @@ if (process.argv[1] && process.argv[1].endsWith('seed.ts')) {
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
+

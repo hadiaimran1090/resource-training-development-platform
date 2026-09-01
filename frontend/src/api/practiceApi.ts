@@ -4,6 +4,8 @@ export interface Practice {
   id: number;
   name: string;
   description?: string;
+  region_id?: number | null;
+  region_name?: string | null;
   lead_user_id?: number | null;
   lead_name?: string | null;
   lead_email?: string | null;
@@ -17,6 +19,7 @@ export interface Practice {
 export interface CreatePracticeData {
   name: string;
   description?: string;
+  region_id?: number | null;
   lead_user_id?: number | null;
   status?: 'active' | 'inactive';
 }
