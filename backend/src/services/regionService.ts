@@ -23,7 +23,8 @@ export class RegionService {
              ) as practices
       FROM regions r
       LEFT JOIN users u ON u.region_id = r.id
-      LEFT JOIN practices p ON p.region_id = r.id
+      LEFT JOIN region_practices rp ON rp.region_id = r.id
+      LEFT JOIN practices p ON p.id = rp.practice_id
       GROUP BY r.id
       ORDER BY r.name ASC
     `;
@@ -46,7 +47,8 @@ export class RegionService {
              ) as practices
       FROM regions r
       LEFT JOIN users u ON u.region_id = r.id
-      LEFT JOIN practices p ON p.region_id = r.id
+      LEFT JOIN region_practices rp ON rp.region_id = r.id
+      LEFT JOIN practices p ON p.id = rp.practice_id
       WHERE r.id = $1
       GROUP BY r.id
     `;
@@ -67,7 +69,12 @@ export class RegionService {
     const newRegion = result.rows[0];
 
     if (Array.isArray(practiceIds) && practiceIds.length > 0) {
-      await pool.query(`UPDATE practices SET region_id = $1 WHERE id = ANY($2::int[])`, [newRegion.id, practiceIds]);
+      for (const pid of practiceIds) {
+        await pool.query(
+          `INSERT INTO region_practices (region_id, practice_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [newRegion.id, pid]
+        );
+      }
     }
 
     return this.getRegionById(newRegion.id);
@@ -86,10 +93,13 @@ export class RegionService {
     if (result.rows.length === 0) return null;
 
     if (Array.isArray(practiceIds)) {
-      // Dissociate old practices for this region, then reassign selected ones
-      await pool.query(`UPDATE practices SET region_id = NULL WHERE region_id = $1`, [id]);
-      if (practiceIds.length > 0) {
-        await pool.query(`UPDATE practices SET region_id = $1 WHERE id = ANY($2::int[])`, [id, practiceIds]);
+      // Re-assign practices in junction table without affecting other regions
+      await pool.query(`DELETE FROM region_practices WHERE region_id = $1`, [id]);
+      for (const pid of practiceIds) {
+        await pool.query(
+          `INSERT INTO region_practices (region_id, practice_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [id, pid]
+        );
       }
     }
 

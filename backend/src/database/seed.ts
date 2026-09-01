@@ -121,6 +121,18 @@ export const seedDatabase = async () => {
       }
     }
 
+    // Seed Many-to-Many region_practices junction table
+    const allRegionsRes = await client.query(`SELECT id FROM regions`);
+    const allPracticesRes = await client.query(`SELECT id FROM practices`);
+    for (const r of allRegionsRes.rows) {
+      for (const p of allPracticesRes.rows) {
+        await client.query(
+          `INSERT INTO region_practices (region_id, practice_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [r.id, p.id]
+        );
+      }
+    }
+
     // Refresh practices map after insert
     const updatedPracticesRes = await client.query(`SELECT id, name, region_id FROM practices`);
     const practiceMap = new Map<string, number>(updatedPracticesRes.rows.map((p: any) => [p.name, p.id]));

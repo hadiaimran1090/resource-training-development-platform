@@ -21,11 +21,18 @@ export class PracticeService {
              COALESCE(p.created_at, CURRENT_TIMESTAMP) as created_at,
              COALESCE(p.updated_at, CURRENT_TIMESTAMP) as updated_at,
              u.name as lead_name, u.email as lead_email,
-             COUNT(usr.id)::int as total_users
+             COUNT(DISTINCT usr.id)::int as total_users,
+             COALESCE(
+               JSON_AGG(
+                 DISTINCT JSONB_BUILD_OBJECT('id', r.id, 'name', r.name, 'code', r.code)
+               ) FILTER (WHERE r.id IS NOT NULL), '[]'::json
+             ) as regions
       FROM practices p
       LEFT JOIN regions reg ON p.region_id = reg.id
       LEFT JOIN users u ON p.lead_user_id = u.id
       LEFT JOIN users usr ON usr.practice_id = p.id
+      LEFT JOIN region_practices rp ON rp.practice_id = p.id
+      LEFT JOIN regions r ON r.id = rp.region_id
       GROUP BY p.id, reg.id, u.name, u.email
       ORDER BY p.name ASC
     `;
@@ -45,11 +52,18 @@ export class PracticeService {
              COALESCE(p.created_at, CURRENT_TIMESTAMP) as created_at,
              COALESCE(p.updated_at, CURRENT_TIMESTAMP) as updated_at,
              u.name as lead_name, u.email as lead_email,
-             COUNT(usr.id)::int as total_users
+             COUNT(DISTINCT usr.id)::int as total_users,
+             COALESCE(
+               JSON_AGG(
+                 DISTINCT JSONB_BUILD_OBJECT('id', r.id, 'name', r.name, 'code', r.code)
+               ) FILTER (WHERE r.id IS NOT NULL), '[]'::json
+             ) as regions
       FROM practices p
       LEFT JOIN regions reg ON p.region_id = reg.id
       LEFT JOIN users u ON p.lead_user_id = u.id
       LEFT JOIN users usr ON usr.practice_id = p.id
+      LEFT JOIN region_practices rp ON rp.practice_id = p.id
+      LEFT JOIN regions r ON r.id = rp.region_id
       WHERE p.id = $1
       GROUP BY p.id, reg.id, u.name, u.email
     `;
@@ -67,7 +81,16 @@ export class PracticeService {
       RETURNING id, name, description, region_id, lead_user_id, status, is_active, created_at, updated_at
     `;
     const result = await pool.query(query, [name.trim(), description.trim(), region_id, lead_user_id, status, is_active]);
-    return result.rows[0];
+    const newPrac = result.rows[0];
+
+    if (region_id) {
+      await pool.query(
+        `INSERT INTO region_practices (region_id, practice_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [region_id, newPrac.id]
+      );
+    }
+
+    return this.getPracticeById(newPrac.id);
   }
 
   static async updatePractice(id: number, data: PracticeData) {
@@ -81,7 +104,15 @@ export class PracticeService {
     `;
     const result = await pool.query(query, [name.trim(), description.trim(), region_id, lead_user_id, status, is_active, id]);
     if (result.rows.length === 0) return null;
-    return result.rows[0];
+
+    if (region_id) {
+      await pool.query(
+        `INSERT INTO region_practices (region_id, practice_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [region_id, id]
+      );
+    }
+
+    return this.getPracticeById(id);
   }
 
   static async togglePracticeStatus(id: number, status: string) {

@@ -154,11 +154,15 @@ CREATE INDEX IF NOT EXISTS idx_assignments_assigned_by ON assignments(assigned_b
 CREATE INDEX IF NOT EXISTS idx_bench_records_user_id ON bench_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 
--- Safety Schema Migration Statements (Auto-adds new columns to pre-existing tables)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS must_reset_password BOOLEAN DEFAULT TRUE NOT NULL;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS joining_date DATE DEFAULT CURRENT_DATE;
-ALTER TABLE practices ADD COLUMN IF NOT EXISTS region_id INT REFERENCES regions(id) ON DELETE CASCADE;
-ALTER TABLE resources ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
-ALTER TABLE assignments ADD COLUMN IF NOT EXISTS assigned_by_user_id INT REFERENCES users(id) ON DELETE SET NULL;
+-- 11. Create Region Practices Many-to-Many Junction Table
+CREATE TABLE IF NOT EXISTS region_practices (
+    region_id INT NOT NULL REFERENCES regions(id) ON DELETE CASCADE,
+    practice_id INT NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (region_id, practice_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_region_practices_region_id ON region_practices(region_id);
+CREATE INDEX IF NOT EXISTS idx_region_practices_practice_id ON region_practices(practice_id);
 
 
