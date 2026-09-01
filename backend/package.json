@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "migrate:neon": "tsx src/database/migrateLocalToNeon.ts"
+    "migrate:neon": "tsx src/database/migrateLocalToNeon.ts",
+    "seed": "tsx src/database/seed.ts",
   },
   "keywords": [],
   "author": "",
