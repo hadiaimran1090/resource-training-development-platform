@@ -4,7 +4,7 @@ import { authApi } from '../../api/authApi';
 import { KeyRound, Lock, CheckCircle2, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 
 export const ForcePasswordResetPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -32,6 +32,7 @@ export const ForcePasswordResetPage: React.FC = () => {
 
     try {
       await authApi.resetFirstPassword(currentPassword, newPassword);
+      await refreshUser();
       setSuccess('Password updated successfully! Redirecting...');
       setTimeout(() => {
         window.location.href = '/';

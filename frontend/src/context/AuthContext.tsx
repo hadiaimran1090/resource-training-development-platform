@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   updateProfile: (data: { password?: string; profileImageUrl?: string | null }) => Promise<User>;
 }
 
@@ -55,6 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUser = async (): Promise<User | null> => {
+    try {
+      const refreshedUser = await authApi.getCurrentUser();
+      setUser(refreshedUser);
+      return refreshedUser;
+    } catch (error) {
+      console.error('Failed to refresh user session:', error);
+      setUser(null);
+      return null;
+    }
+  };
+
   const updateProfile = async (data: { password?: string; profileImageUrl?: string | null }): Promise<User> => {
     const updatedUser = await authApi.updateProfile(data);
     setUser(updatedUser);
@@ -69,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        refreshUser,
         updateProfile,
       }}
     >

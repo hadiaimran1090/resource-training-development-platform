@@ -114,8 +114,8 @@ export const createResource = async (req: AuthRequest, res: Response): Promise<v
       current_status,
     } = req.body;
 
-    if (!name || !email || !password || !employeeId || !designation) {
-      res.status(400).json({ message: 'Name, Email, Password, Employee ID, and Designation are required.' });
+    if (!name || !email || !password || !designation) {
+      res.status(400).json({ message: 'Name, Email, Password, and Designation are required.' });
       return;
     }
 
@@ -124,7 +124,7 @@ export const createResource = async (req: AuthRequest, res: Response): Promise<v
       name,
       email,
       password,
-      employeeId,
+      employeeId: employeeId || undefined,
       roleIds: [], // Will link Resource role
       regionId: region_id ? Number(region_id) : null,
       practiceId: practice_id ? Number(practice_id) : null,
