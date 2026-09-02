@@ -265,23 +265,33 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Employee ID */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-slate-700">
-                      Employee ID {!isEditMode && <span className="text-slate-400 font-medium">(optional)</span>}
-                    </label>
-                    {!isEditMode && (
-                      <span className="text-[10px] text-slate-400 font-medium">Auto-generated if empty</span>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    placeholder={isEditMode ? 'e.g. EMP-102' : 'Leave blank to auto-generate'}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  />
-                </div>
+<div className="space-y-1">
+  <div className="flex justify-between items-center">
+    <label className="text-xs font-bold text-slate-700">
+      Employee ID
+      {!isEditMode && (
+        <span className="text-slate-400 font-medium ml-1">(Auto-generated)</span>
+      )}
+    </label>
+  </div>
+
+  <input
+    type="text"
+    value={employeeId}
+    readOnly={!isEditMode}
+    onChange={(e) => {
+      if (isEditMode) {
+        setEmployeeId(e.target.value);
+      }
+    }}
+    placeholder={isEditMode ? 'e.g. EMP-102' : 'Will be generated automatically'}
+    className={`w-full px-3.5 py-2 border rounded-xl text-xs text-slate-900 focus:outline-none transition-all ${
+      isEditMode
+        ? 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+        : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+    }`}
+  />
+</div>
 
                 {/* Password Field */}
                 <div className="space-y-1">
