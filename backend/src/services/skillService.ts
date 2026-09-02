@@ -121,15 +121,19 @@ export class SkillService {
     targetLevel: number | null,
     source: SkillSource
   ): Promise<ResourceSkill> {
-    const res = await pool.query(
+    await pool.query(
       `INSERT INTO resource_skills (resource_id, skill_id, current_level, target_level, source, last_updated)
        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-       RETURNING *`,
+       ON CONFLICT (resource_id, skill_id)
+       DO UPDATE SET current_level = EXCLUDED.current_level, target_level = EXCLUDED.target_level, source = EXCLUDED.source, last_updated = CURRENT_TIMESTAMP`,
       [resourceId, skillId, currentLevel, targetLevel, source]
     );
 
     const fullSkill = await this.getResourceSkillBySkillId(resourceId, skillId);
-    return fullSkill || res.rows[0];
+    if (!fullSkill) {
+      throw new Error('Failed to retrieve saved resource skill entry.');
+    }
+    return fullSkill;
   }
 
   static async updateResourceSkill(

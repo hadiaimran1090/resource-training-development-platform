@@ -142,7 +142,7 @@ export const seedDatabase = async () => {
         roleNames: ['System Administrator'],
         regionName: 'APAC',
         practiceName: null,
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Sarah Practice Lead',
@@ -151,7 +151,7 @@ export const seedDatabase = async () => {
         roleNames: ['Practice Lead'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Rohan Regional Lead',
@@ -160,7 +160,7 @@ export const seedDatabase = async () => {
         roleNames: ['Regional Lead'],
         regionName: 'KSA',
         practiceName: null,
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Tania Training Manager',
@@ -169,7 +169,7 @@ export const seedDatabase = async () => {
         roleNames: ['Training Manager'],
         regionName: 'UAE',
         practiceName: null,
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Michael Mentor',
@@ -178,7 +178,7 @@ export const seedDatabase = async () => {
         roleNames: ['Mentor', 'Practice Lead'],
         regionName: 'VSI',
         practiceName: 'Quality Assurance',
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Rachel Resource',
@@ -187,7 +187,7 @@ export const seedDatabase = async () => {
         roleNames: ['Resource'],
         regionName: 'APAC',
         practiceName: 'Software Engineering',
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
       {
         name: 'Marcus Management',
@@ -196,7 +196,7 @@ export const seedDatabase = async () => {
         roleNames: ['Management'],
         regionName: 'APAC',
         practiceName: null,
-        mustResetPassword: true,
+        mustResetPassword: false,
       },
     ];
 
@@ -225,8 +225,8 @@ export const seedDatabase = async () => {
       } else {
         userId = userCheck.rows[0].id;
         await client.query(
-          `UPDATE users SET must_reset_password = $1, region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-          [u.mustResetPassword, regionId || null, practiceId || null, userId]
+          `UPDATE users SET region_id = $1, practice_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [regionId || null, practiceId || null, userId]
         );
       }
 
