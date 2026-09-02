@@ -8,6 +8,13 @@ import {
   createResource,
   updateResource,
 } from '../controllers/resourceController.js';
+import {
+  getResourceSkills,
+  addResourceSkill,
+  updateResourceSkill,
+  deleteResourceSkill,
+  getSkillGap,
+} from '../controllers/skillController.js';
 
 const router = Router();
 
@@ -24,5 +31,12 @@ router.get('/:id', getResourceById);
 // Admin-only write endpoints
 router.post('/', requireRoles('System Administrator'), createResource);
 router.put('/:id', requireRoles('System Administrator'), updateResource);
+
+// Resource Skills Matrix & Live Gap Calculation Endpoints
+router.get('/:resourceId/skills', getResourceSkills);
+router.post('/:resourceId/skills', addResourceSkill);
+router.put('/:resourceId/skills/:skillId', updateResourceSkill);
+router.delete('/:resourceId/skills/:skillId', deleteResourceSkill);
+router.get('/:resourceId/skill-gap', getSkillGap);
 
 export default router;

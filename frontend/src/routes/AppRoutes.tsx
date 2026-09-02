@@ -16,7 +16,11 @@ import { UserDetailPage } from '../pages/admin/UserDetailPage';
 import { RegionManagementPage } from '../pages/admin/RegionManagementPage';
 import { PracticeManagementPage } from '../pages/admin/PracticeManagementPage';
 import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
+import { SkillsCatalogPage } from '../pages/admin/SkillsCatalogPage';
+import { RoleProfilesPage } from '../pages/admin/RoleProfilesPage';
+import { RoleProfileDetailPage } from '../pages/admin/RoleProfileDetailPage';
 import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
+import { MySkillsPage } from '../pages/resource/MySkillsPage';
 import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManagementPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
@@ -131,6 +135,54 @@ const ProtectedLayout: React.FC = () => {
           }
         />
         <Route
+          path="/admin/skills"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+              <SkillsCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/role-profiles"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+              <RoleProfilesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/role-profiles/:id"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+              <RoleProfileDetailPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/training-manager/skills"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+              <SkillsCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/training-manager/role-profiles"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+              <RoleProfilesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/training-manager/role-profiles/:id"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+              <RoleProfileDetailPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="/regional-lead/dashboard"
           element={
             <RequireRole allowedRoles={['Regional Lead']}>
@@ -186,6 +238,9 @@ const ProtectedLayout: React.FC = () => {
             </RequireRole>
           }
         />
+        <Route path="/skills" element={<MySkillsPage />} />
+        <Route path="/my-skills" element={<MySkillsPage />} />
+        <Route path="/resource/skills" element={<MySkillsPage />} />
         <Route path="/profile" element={<ResourceProfilePage />} />
         <Route path="/resource/profile" element={<ResourceProfilePage />} />
         <Route path="/admin/profile" element={<ResourceProfilePage />} />

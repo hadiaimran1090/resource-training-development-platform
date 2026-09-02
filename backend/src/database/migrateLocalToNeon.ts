@@ -50,6 +50,39 @@ export const migrateLocalToNeon = async () => {
       ALTER TABLE resources ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
       ALTER TABLE assignments ADD COLUMN IF NOT EXISTS assigned_by_user_id INT REFERENCES users(id) ON DELETE SET NULL;
       ALTER TABLE bench_records DROP COLUMN IF EXISTS reason;
+
+      CREATE TABLE IF NOT EXISTS skills (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) UNIQUE NOT NULL,
+        category VARCHAR(30) NOT NULL CHECK (category IN ('technical', 'secondary', 'soft')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS resource_skills (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+        current_level NUMERIC(3,1) NOT NULL CHECK (current_level >= 0.0 AND current_level <= 5.0),
+        target_level NUMERIC(3,1) CHECK (target_level IS NULL OR (target_level >= 0.0 AND target_level <= 5.0)),
+        source VARCHAR(30) NOT NULL CHECK (source IN ('self', 'assessment', 'coding', 'mentor', 'interview', 'training')),
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_resource_skill UNIQUE (resource_id, skill_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS role_profiles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) UNIQUE NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS role_profile_skills (
+        role_profile_id INT NOT NULL REFERENCES role_profiles(id) ON DELETE CASCADE,
+        skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+        required_level NUMERIC(3,1) NOT NULL CHECK (required_level >= 0.0 AND required_level <= 5.0),
+        PRIMARY KEY (role_profile_id, skill_id)
+      );
     `);
 
     // 1. Roles

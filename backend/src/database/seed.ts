@@ -16,15 +16,6 @@ export const seedDatabase = async () => {
   try {
     client = await pool.connect();
 
-    const existingDataCheck = await client.query(`
-      SELECT EXISTS (SELECT 1 FROM roles) OR EXISTS (SELECT 1 FROM regions) OR EXISTS (SELECT 1 FROM users) AS has_data
-    `);
-
-    if (existingDataCheck.rows[0]?.has_data) {
-      console.log('[Database] Existing seed data detected. Skipping reseed on startup.');
-      return;
-    }
-
     // 1. Ensure Database Schema Exists (Run schema.sql DDL if present)
     const possiblePaths = [
       path.resolve(process.cwd(), 'src/database/schema.sql'),
@@ -234,7 +225,7 @@ export const seedDatabase = async () => {
       } else {
         userId = userCheck.rows[0].id;
         await client.query(
-          `UPDATE users SET region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+          `UPDATE users SET must_reset_password = $1, region_id = $2, practice_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
           [u.mustResetPassword, regionId || null, practiceId || null, userId]
         );
       }
@@ -318,7 +309,116 @@ export const seedDatabase = async () => {
     // 10. Adjust employee_id sequence start
     await client.query(`SELECT setval('employee_id_seq', 1000, true)`);
 
-    console.log('[Database] Connected & initialized successfully with updated architecture.');
+    // ==========================================
+    // 11.  Seed: Skills Catalog
+    // ==========================================
+    const sampleSkills = [
+      { name: 'Java', category: 'technical' },
+      { name: 'Spring Boot', category: 'technical' },
+      { name: 'REST APIs', category: 'technical' },
+      { name: 'SQL', category: 'technical' },
+      { name: 'React', category: 'technical' },
+      { name: 'JavaScript', category: 'technical' },
+      { name: 'AWS / Azure', category: 'secondary' },
+      { name: 'Docker', category: 'secondary' },
+      { name: 'Testing & QA', category: 'secondary' },
+      { name: 'System Design', category: 'technical' },
+      { name: 'Git & Version Control', category: 'secondary' },
+      { name: 'CI/CD Pipelines', category: 'secondary' },
+      { name: 'Agile & Scrum', category: 'soft' },
+      { name: 'Technical Communication', category: 'soft' },
+    ];
+
+    for (const s of sampleSkills) {
+      await client.query(
+        `INSERT INTO skills (name, category) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
+        [s.name, s.category]
+      );
+    }
+
+    const skillsRes = await client.query(`SELECT id, name FROM skills`);
+    const skillMap = new Map<string, number>(skillsRes.rows.map((s: any) => [s.name, s.id]));
+
+    // ==========================================
+    // 12. Seed: Role Profiles & Role Profile Skills
+    // ==========================================
+    const roleProfileName = 'Full Stack Java Engineer';
+    const roleProfileDesc = 'Full Stack Developer proficient in Java, Spring Boot microservices, React frontend, database architecture, and cloud deployment.';
+
+    let roleProfileId: number;
+    const rpCheck = await client.query(`SELECT id FROM role_profiles WHERE name = $1`, [roleProfileName]);
+    if (rpCheck.rows.length === 0) {
+      const rpInsert = await client.query(
+        `INSERT INTO role_profiles (name, description) VALUES ($1, $2) RETURNING id`,
+        [roleProfileName, roleProfileDesc]
+      );
+      roleProfileId = rpInsert.rows[0].id;
+    } else {
+      roleProfileId = rpCheck.rows[0].id;
+    }
+
+    const requiredSkillsForJavaEngineer = [
+      { name: 'Java', level: 4.0 },
+      { name: 'Spring Boot', level: 4.0 },
+      { name: 'REST APIs', level: 4.0 },
+      { name: 'SQL', level: 3.0 },
+      { name: 'React', level: 3.0 },
+      { name: 'JavaScript', level: 3.0 },
+      { name: 'AWS / Azure', level: 3.0 },
+      { name: 'Docker', level: 3.0 },
+      { name: 'Testing & QA', level: 3.0 },
+      { name: 'System Design', level: 3.0 },
+      { name: 'Git & Version Control', level: 3.0 },
+      { name: 'CI/CD Pipelines', level: 2.0 },
+    ];
+
+    for (const reqSkill of requiredSkillsForJavaEngineer) {
+      const skillId = skillMap.get(reqSkill.name);
+      if (skillId && roleProfileId) {
+        await client.query(
+          `INSERT INTO role_profile_skills (role_profile_id, skill_id, required_level)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (role_profile_id, skill_id) DO UPDATE SET required_level = EXCLUDED.required_level`,
+          [roleProfileId, skillId, reqSkill.level]
+        );
+      }
+    }
+
+    // ==========================================
+    // 13. Seed: Sample Resource Skills Matrix
+    // ==========================================
+    const rachelUserRes = await client.query(`SELECT id FROM users WHERE email = 'rachel@rtdp.com'`);
+    if (rachelUserRes.rows.length > 0) {
+      const rachelUserId = rachelUserRes.rows[0].id;
+      const rachelRes = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [rachelUserId]);
+      if (rachelRes.rows.length > 0) {
+        const resourceId = rachelRes.rows[0].id;
+
+        const sampleResourceSkills = [
+          { skillName: 'Java', current: 3.0, target: 4.0, source: 'self' },
+          { skillName: 'Spring Boot', current: 2.5, target: 4.0, source: 'assessment' },
+          { skillName: 'REST APIs', current: 3.5, target: 4.0, source: 'self' },
+          { skillName: 'SQL', current: 3.0, target: 3.0, source: 'self' },
+          { skillName: 'React', current: 2.0, target: 3.0, source: 'training' },
+          { skillName: 'Git & Version Control', current: 4.0, target: 4.0, source: 'mentor' },
+        ];
+
+        for (const s of sampleResourceSkills) {
+          const skillId = skillMap.get(s.skillName);
+          if (skillId) {
+            await client.query(
+              `INSERT INTO resource_skills (resource_id, skill_id, current_level, target_level, source)
+               VALUES ($1, $2, $3, $4, $5)
+               ON CONFLICT (resource_id, skill_id)
+               DO UPDATE SET current_level = EXCLUDED.current_level, target_level = EXCLUDED.target_level, source = EXCLUDED.source, last_updated = CURRENT_TIMESTAMP`,
+              [resourceId, skillId, s.current, s.target, s.source]
+            );
+          }
+        }
+      }
+    }
+
+    console.log('[Database] Connected & initialized successfully.');
   } catch (error: any) {
     console.error('[Database Error]', error?.message || error);
   } finally {

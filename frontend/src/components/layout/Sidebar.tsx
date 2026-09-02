@@ -80,7 +80,7 @@ const resourceSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/resource/profile', icon: User },
-      { name: 'My Skills', path: '/resource/dashboard#skills', icon: Award },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'Certifications', path: '/resource/dashboard#certifications', icon: CheckCircle },
       { name: 'Interview History', path: '/resource/dashboard#interview-history', icon: History },
       { name: 'My Readiness Score', path: '/resource/dashboard#readiness', icon: Gauge },
@@ -97,6 +97,7 @@ const regionalLeadSidebar: NavSection[] = [
       { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -125,6 +126,7 @@ const practiceLeadSidebar: NavSection[] = [
     items: [
       { name: 'Practice Lead Dashboard', path: '/practice-lead/dashboard', icon: LayoutDashboard },
       { name: 'Org Bench Overview', path: '/practice-lead/dashboard#bench-overview', icon: Armchair },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -145,6 +147,7 @@ const adminSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'System Administrator Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -161,8 +164,8 @@ const adminSidebar: NavSection[] = [
   {
     title: 'Catalog & Profiles',
     items: [
-      { name: 'Skills Catalog', path: '/admin/dashboard#skills-catalog', icon: BookOpen },
-      { name: 'Role Profiles', path: '/admin/dashboard#role-profiles', icon: UserPlus },
+      { name: 'Skills Catalog', path: '/admin/skills', icon: BookOpen },
+      { name: 'Role Profiles', path: '/admin/role-profiles', icon: UserPlus },
     ],
   },
   {
@@ -180,12 +183,15 @@ const trainingManagerSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Training Manager Dashboard', path: '/training-manager/dashboard', icon: LayoutDashboard },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
     title: 'Curriculum & Content',
     items: [
+      { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
+      { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Training Tracks', path: '/training-manager/dashboard#tracks', icon: GitBranch },
       { name: 'Programs', path: '/training-manager/dashboard#programs', icon: BookOpen },
       { name: 'Modules', path: '/training-manager/dashboard#modules', icon: Layers },
@@ -197,7 +203,7 @@ const trainingManagerSidebar: NavSection[] = [
   {
     title: 'Requirements & Reports',
     items: [
-      { name: 'Role Profiles', path: '/training-manager/dashboard#profiles', icon: UserPlus },
+      { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Effectiveness Reports', path: '/training-manager/dashboard#reports', icon: LineChart },
     ],
   },
@@ -209,6 +215,7 @@ const mentorSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Mentor / SME Dashboard', path: '/mentor/dashboard', icon: LayoutDashboard },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -230,6 +237,7 @@ const managementSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Management Dashboard', path: '/management/dashboard', icon: LayoutDashboard },
+      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },

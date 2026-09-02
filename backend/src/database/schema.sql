@@ -165,4 +165,48 @@ CREATE TABLE IF NOT EXISTS region_practices (
 CREATE INDEX IF NOT EXISTS idx_region_practices_region_id ON region_practices(region_id);
 CREATE INDEX IF NOT EXISTS idx_region_practices_practice_id ON region_practices(practice_id);
 
+-- 12. Create Skills Table (Skills Catalog)
+CREATE TABLE IF NOT EXISTS skills (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) UNIQUE NOT NULL,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('technical', 'secondary', 'soft')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 13. Create Resource Skills Table (Skills Matrix)
+CREATE TABLE IF NOT EXISTS resource_skills (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    current_level NUMERIC(3,1) NOT NULL CHECK (current_level >= 0.0 AND current_level <= 5.0),
+    target_level NUMERIC(3,1) CHECK (target_level IS NULL OR (target_level >= 0.0 AND target_level <= 5.0)),
+    source VARCHAR(30) NOT NULL CHECK (source IN ('self', 'assessment', 'coding', 'mentor', 'interview', 'training')),
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_resource_skill UNIQUE (resource_id, skill_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_resource_skills_resource_id ON resource_skills(resource_id);
+CREATE INDEX IF NOT EXISTS idx_resource_skills_skill_id ON resource_skills(skill_id);
+
+-- 14. Create Role Profiles Table
+CREATE TABLE IF NOT EXISTS role_profiles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 15. Create Role Profile Skills Junction Table
+CREATE TABLE IF NOT EXISTS role_profile_skills (
+    role_profile_id INT NOT NULL REFERENCES role_profiles(id) ON DELETE CASCADE,
+    skill_id INT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    required_level NUMERIC(3,1) NOT NULL CHECK (required_level >= 0.0 AND required_level <= 5.0),
+    PRIMARY KEY (role_profile_id, skill_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_role_profile_skills_role ON role_profile_skills(role_profile_id);
+CREATE INDEX IF NOT EXISTS idx_role_profile_skills_skill ON role_profile_skills(skill_id);
+
+
 
