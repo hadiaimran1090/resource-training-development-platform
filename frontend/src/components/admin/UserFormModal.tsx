@@ -319,7 +319,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                   <label className="text-xs font-bold text-slate-700">
                     Assigned Roles (Select one or more) <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[10px] text-slate-400 font-medium">Admin role hidden</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-40 overflow-y-auto">
                   {roles.map((r) => {
