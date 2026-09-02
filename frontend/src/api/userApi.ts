@@ -194,13 +194,20 @@ export const userApi = {
   },
 
   getRegions: async (): Promise<RegionCatalog[]> => {
-    const response = await apiClient.get<RegionsResponse>('/regions');
-    return response.data.data;
-  },
+  const response = await apiClient.get<RegionsResponse | RegionCatalog[]>('/regions');
 
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data.data;
+},
   getPractices: async (regionId?: number): Promise<PracticeCatalog[]> => {
-    const url = regionId ? `/practices?regionId=${regionId}` : '/practices';
-    const response = await apiClient.get<PracticesResponse>(url);
-    return response.data.data;
-  },
+  const url = regionId ? `/practices?regionId=${regionId}` : '/practices';
+
+  const response = await apiClient.get<PracticesResponse | PracticeCatalog[]>(url);
+
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data.data;
+},
+
 };
