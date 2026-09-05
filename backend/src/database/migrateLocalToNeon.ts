@@ -171,12 +171,52 @@ export const migrateLocalToNeon = async () => {
         required_level NUMERIC(3,1) NOT NULL CHECK (required_level >= 0.0 AND required_level <= 5.0),
         PRIMARY KEY (role_profile_id, skill_id)
       );
+
+      CREATE TABLE IF NOT EXISTS training_tracks (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        target_role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+        description TEXT,
+        duration_days INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS training_programs (
+        id SERIAL PRIMARY KEY,
+        track_id INT NOT NULL REFERENCES training_tracks(id) ON DELETE RESTRICT,
+        name VARCHAR(150) NOT NULL,
+        skill_level VARCHAR(20) NOT NULL CHECK (skill_level IN ('beginner', 'intermediate', 'advanced')),
+        duration_days INT NOT NULL,
+        prerequisites TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS training_modules (
+        id SERIAL PRIMARY KEY,
+        program_id INT NOT NULL REFERENCES training_programs(id) ON DELETE RESTRICT,
+        name VARCHAR(150) NOT NULL,
+        sequence_order INT NOT NULL,
+        day_number INT NOT NULL,
+        content_type VARCHAR(20) NOT NULL CHECK (content_type IN ('video', 'document', 'lab')),
+        content_url VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_training_tracks_target_role ON training_tracks(target_role_profile_id);
+      CREATE INDEX IF NOT EXISTS idx_training_programs_track_id ON training_programs(track_id);
+      CREATE INDEX IF NOT EXISTS idx_training_modules_program_id ON training_modules(program_id);
     `);
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        training_modules,
+        training_programs,
+        training_tracks,
         assignments,
         bench_records,
         resource_skills,
@@ -378,8 +418,44 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${rsRes.rows.length} resource_skills.`);
     await neonClient.query(`SELECT setval('resource_skills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM resource_skills))`);
 
+    // 14. Training Tracks (Day 6)
+    const ttRes = await localClient.query(`SELECT * FROM training_tracks ORDER BY id`);
+    for (const tt of ttRes.rows) {
+      await neonClient.query(
+        `INSERT INTO training_tracks (id, name, target_role_profile_id, description, duration_days, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [tt.id, tt.name, tt.target_role_profile_id || null, tt.description, tt.duration_days, tt.created_at, tt.updated_at]
+      );
+    }
+    console.log(`Migrated ${ttRes.rows.length} training_tracks.`);
+    await neonClient.query(`SELECT setval('training_tracks_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_tracks))`);
+
+    // 15. Training Programs (Day 6)
+    const tpRes = await localClient.query(`SELECT * FROM training_programs ORDER BY id`);
+    for (const tp of tpRes.rows) {
+      await neonClient.query(
+        `INSERT INTO training_programs (id, track_id, name, skill_level, duration_days, prerequisites, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [tp.id, tp.track_id, tp.name, tp.skill_level, tp.duration_days, tp.prerequisites, tp.created_at, tp.updated_at]
+      );
+    }
+    console.log(`Migrated ${tpRes.rows.length} training_programs.`);
+    await neonClient.query(`SELECT setval('training_programs_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_programs))`);
+
+    // 16. Training Modules (Day 6)
+    const tmRes = await localClient.query(`SELECT * FROM training_modules ORDER BY id`);
+    for (const tm of tmRes.rows) {
+      await neonClient.query(
+        `INSERT INTO training_modules (id, program_id, name, sequence_order, day_number, content_type, content_url, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [tm.id, tm.program_id, tm.name, tm.sequence_order, tm.day_number, tm.content_type, tm.content_url, tm.created_at, tm.updated_at]
+      );
+    }
+    console.log(`Migrated ${tmRes.rows.length} training_modules.`);
+    await neonClient.query(`SELECT setval('training_modules_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_modules))`);
+
     console.log('\n======================================================');
-    console.log(' SUCCESS: All local database data & Day 5 Skills Matrix fully migrated to Neon Cloud PostgreSQL!');
+    console.log(' SUCCESS: All local database data & Day 6 Training Catalog fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
     console.error('Migration error:', error?.message || error);

@@ -384,6 +384,42 @@ export const seedDatabase = async () => {
       }
     }
 
+    // Seed "Cloud DevOps Engineer" Role Profile
+    const cloudDevOpsName = 'Cloud DevOps Engineer';
+    const cloudDevOpsDesc = 'Cloud Specialist proficient in AWS infrastructure, containerization, Infrastructure as Code, and CI/CD automated deployments.';
+    let cloudDevOpsId: number;
+    const cdCheck = await client.query(`SELECT id FROM role_profiles WHERE name = $1`, [cloudDevOpsName]);
+    if (cdCheck.rows.length === 0) {
+      const cdInsert = await client.query(
+        `INSERT INTO role_profiles (name, description) VALUES ($1, $2) RETURNING id`,
+        [cloudDevOpsName, cloudDevOpsDesc]
+      );
+      cloudDevOpsId = cdInsert.rows[0].id;
+    } else {
+      cloudDevOpsId = cdCheck.rows[0].id;
+    }
+
+    const requiredSkillsForCloudDevOps = [
+      { name: 'AWS / Azure', level: 4.0 },
+      { name: 'Docker', level: 4.0 },
+      { name: 'CI/CD Pipelines', level: 4.0 },
+      { name: 'System Design', level: 3.0 },
+      { name: 'Git & Version Control', level: 3.5 },
+      { name: 'SQL', level: 3.0 },
+    ];
+
+    for (const reqSkill of requiredSkillsForCloudDevOps) {
+      const skillId = skillMap.get(reqSkill.name);
+      if (skillId && cloudDevOpsId) {
+        await client.query(
+          `INSERT INTO role_profile_skills (role_profile_id, skill_id, required_level)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (role_profile_id, skill_id) DO UPDATE SET required_level = EXCLUDED.required_level`,
+          [cloudDevOpsId, skillId, reqSkill.level]
+        );
+      }
+    }
+
     // ==========================================
     // 13. Seed: Sample Resource Skills Matrix
     // ==========================================
@@ -418,7 +454,79 @@ export const seedDatabase = async () => {
       }
     }
 
+    // ==========================================
+    // 14. Seed: Day 6 Training Catalog (AWS Cloud Engineer Track)
+    // ==========================================
+    const trackName = 'AWS Cloud Engineer Track';
+    let trackId: number;
+    const trackCheck = await client.query(`SELECT id FROM training_tracks WHERE name = $1`, [trackName]);
+    if (trackCheck.rows.length === 0) {
+      const trackInsert = await client.query(
+        `INSERT INTO training_tracks (name, target_role_profile_id, description, duration_days)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [trackName, cloudDevOpsId, 'Comprehensive track covering AWS cloud infrastructure, serverless, and deployment patterns.', 10]
+      );
+      trackId = trackInsert.rows[0].id;
+    } else {
+      trackId = trackCheck.rows[0].id;
+      // Ensure target_role_profile_id is linked
+      await client.query(
+        `UPDATE training_tracks SET target_role_profile_id = $1, duration_days = 10 WHERE id = $2`,
+        [cloudDevOpsId, trackId]
+      );
+    }
+
+    const programName = 'AWS Fundamentals to Deployment';
+    let programId: number;
+    const programCheck = await client.query(`SELECT id FROM training_programs WHERE track_id = $1 AND name = $2`, [trackId, programName]);
+    if (programCheck.rows.length === 0) {
+      const programInsert = await client.query(
+        `INSERT INTO training_programs (track_id, name, skill_level, duration_days, prerequisites)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [trackId, programName, 'intermediate', 10, 'Basic cloud computing concepts']
+      );
+      programId = programInsert.rows[0].id;
+    } else {
+      programId = programCheck.rows[0].id;
+    }
+
+    const sampleModules = [
+      { name: 'AWS Fundamentals', content_type: 'video', sequence_order: 1, day_number: 1, content_url: 'https://aws.amazon.com/training/intro' },
+      { name: 'EC2', content_type: 'video', sequence_order: 2, day_number: 2, content_url: 'https://aws.amazon.com/ec2/getting-started' },
+      { name: 'S3', content_type: 'video', sequence_order: 3, day_number: 3, content_url: 'https://aws.amazon.com/s3/getting-started' },
+      { name: 'RDS', content_type: 'video', sequence_order: 4, day_number: 4, content_url: 'https://aws.amazon.com/rds/getting-started' },
+      { name: 'VPC', content_type: 'video', sequence_order: 5, day_number: 5, content_url: 'https://aws.amazon.com/vpc/getting-started' },
+      { name: 'Lambda', content_type: 'lab', sequence_order: 6, day_number: 6, content_url: 'https://aws.amazon.com/lambda/getting-started' },
+      { name: 'API Gateway', content_type: 'lab', sequence_order: 7, day_number: 7, content_url: 'https://aws.amazon.com/api-gateway/getting-started' },
+      { name: 'CloudWatch', content_type: 'document', sequence_order: 8, day_number: 8, content_url: 'https://aws.amazon.com/cloudwatch/getting-started' },
+      { name: 'Architecture Assessment', content_type: 'document', sequence_order: 9, day_number: 9, content_url: 'https://aws.amazon.com/architecture' },
+      { name: 'Final Challenge', content_type: 'lab', sequence_order: 10, day_number: 10, content_url: 'https://aws.amazon.com/challenge' },
+    ];
+
+    for (const mod of sampleModules) {
+      const modCheck = await client.query(
+        `SELECT id FROM training_modules WHERE program_id = $1 AND sequence_order = $2`,
+        [programId, mod.sequence_order]
+      );
+
+      if (modCheck.rows.length === 0) {
+        await client.query(
+          `INSERT INTO training_modules (program_id, name, sequence_order, day_number, content_type, content_url)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [programId, mod.name, mod.sequence_order, mod.day_number, mod.content_type, mod.content_url]
+        );
+      } else {
+        await client.query(
+          `UPDATE training_modules 
+           SET name = $1, day_number = $2, content_type = $3, content_url = $4
+           WHERE id = $5`,
+          [mod.name, mod.day_number, mod.content_type, mod.content_url, modCheck.rows[0].id]
+        );
+      }
+    }
+
     console.log('[Database] Connected & initialized successfully.');
+
   } catch (error: any) {
     console.error('[Database Error]', error?.message || error);
   } finally {

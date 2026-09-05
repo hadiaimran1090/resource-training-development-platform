@@ -208,5 +208,43 @@ CREATE TABLE IF NOT EXISTS role_profile_skills (
 CREATE INDEX IF NOT EXISTS idx_role_profile_skills_role ON role_profile_skills(role_profile_id);
 CREATE INDEX IF NOT EXISTS idx_role_profile_skills_skill ON role_profile_skills(skill_id);
 
+-- 16. Create Training Tracks Table
+CREATE TABLE IF NOT EXISTS training_tracks (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    target_role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+    description TEXT,
+    duration_days INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+-- 17. Create Training Programs Table
+CREATE TABLE IF NOT EXISTS training_programs (
+    id SERIAL PRIMARY KEY,
+    track_id INT NOT NULL REFERENCES training_tracks(id) ON DELETE RESTRICT,
+    name VARCHAR(150) NOT NULL,
+    skill_level VARCHAR(20) NOT NULL CHECK (skill_level IN ('beginner', 'intermediate', 'advanced')),
+    duration_days INT NOT NULL,
+    prerequisites TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+-- 18. Create Training Modules Table
+CREATE TABLE IF NOT EXISTS training_modules (
+    id SERIAL PRIMARY KEY,
+    program_id INT NOT NULL REFERENCES training_programs(id) ON DELETE RESTRICT,
+    name VARCHAR(150) NOT NULL,
+    sequence_order INT NOT NULL,
+    day_number INT NOT NULL,
+    content_type VARCHAR(20) NOT NULL CHECK (content_type IN ('video', 'document', 'lab')),
+    content_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for Training Catalog Performance
+CREATE INDEX IF NOT EXISTS idx_training_tracks_target_role ON training_tracks(target_role_profile_id);
+CREATE INDEX IF NOT EXISTS idx_training_programs_track_id ON training_programs(track_id);
+CREATE INDEX IF NOT EXISTS idx_training_modules_program_id ON training_modules(program_id);

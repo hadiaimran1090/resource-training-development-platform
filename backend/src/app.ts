@@ -9,6 +9,7 @@ import resourceRoutes from './routes/resourceRoutes.js';
 import assignmentRoutes from './routes/assignmentRoutes.js';
 import skillRoutes from './routes/skillRoutes.js';
 import roleProfileRoutes from './routes/roleProfileRoutes.js';
+import trainingCatalogRoutes from './routes/trainingCatalogRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
@@ -72,6 +73,7 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/role-profiles', roleProfileRoutes);
+app.use('/api', trainingCatalogRoutes);
 
 // Error Handler Middleware
 app.use(errorHandler);

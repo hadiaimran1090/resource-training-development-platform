@@ -19,6 +19,7 @@ import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
 import { SkillsCatalogPage } from '../pages/admin/SkillsCatalogPage';
 import { RoleProfilesPage } from '../pages/admin/RoleProfilesPage';
 import { RoleProfileDetailPage } from '../pages/admin/RoleProfileDetailPage';
+import { TrainingCatalogPage } from '../pages/training-manager/TrainingCatalogPage';
 import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
 import { MySkillsPage } from '../pages/resource/MySkillsPage';
 import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManagementPage';
@@ -175,13 +176,22 @@ const ProtectedLayout: React.FC = () => {
           }
         />
         <Route
-          path="/training-manager/role-profiles/:id"
+          path="/admin/training-catalog"
           element={
-            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
-              <RoleProfileDetailPage />
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+              <TrainingCatalogPage />
             </RequireRole>
           }
         />
+        <Route
+          path="/training-manager/training-catalog"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+              <TrainingCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route path="/training-catalog" element={<TrainingCatalogPage />} />
         <Route
           path="/regional-lead/dashboard"
           element={

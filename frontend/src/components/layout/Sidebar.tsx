@@ -70,6 +70,7 @@ const resourceSidebar: NavSection[] = [
   {
     title: 'Learning & Development',
     items: [
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'My Training Plan', path: '/resource/dashboard#training-plan', icon: Route },
       { name: "Today's Activities", path: '/resource/dashboard#activities', icon: Calendar },
       { name: 'Assessments', path: '/resource/dashboard#assessments', icon: FileCheck },
@@ -104,6 +105,7 @@ const regionalLeadSidebar: NavSection[] = [
   {
     title: 'Approvals & Tracking',
     items: [
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
       { name: 'Training Assignments', path: '/regional-lead/dashboard#training', icon: BookOpen },
       { name: 'Assessments Review', path: '/regional-lead/dashboard#assessments-review', icon: FileText },
@@ -133,6 +135,7 @@ const practiceLeadSidebar: NavSection[] = [
   {
     title: 'Analytics & Programs',
     items: [
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'Regional Comparison', path: '/practice-lead/dashboard#regional-comparison', icon: BarChart2 },
       { name: 'Development Metrics', path: '/practice-lead/dashboard#dev-metrics', icon: TrendingUp },
       { name: 'Strategic Program Approvals', path: '/practice-lead/dashboard#approvals', icon: CheckSquare },
@@ -164,6 +167,7 @@ const adminSidebar: NavSection[] = [
   {
     title: 'Catalog & Profiles',
     items: [
+      { name: 'Training Catalog', path: '/admin/training-catalog', icon: GitBranch },
       { name: 'Skills Catalog', path: '/admin/skills', icon: BookOpen },
       { name: 'Role Profiles', path: '/admin/role-profiles', icon: UserPlus },
     ],
@@ -190,11 +194,9 @@ const trainingManagerSidebar: NavSection[] = [
   {
     title: 'Curriculum & Content',
     items: [
+      { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
       { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
-      { name: 'Training Tracks', path: '/training-manager/dashboard#tracks', icon: GitBranch },
-      { name: 'Programs', path: '/training-manager/dashboard#programs', icon: BookOpen },
-      { name: 'Modules', path: '/training-manager/dashboard#modules', icon: Layers },
       { name: 'Daily Activity Templates', path: '/training-manager/dashboard#templates', icon: Calendar },
       { name: 'Assessments', path: '/training-manager/dashboard#assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/training-manager/dashboard#challenges', icon: Terminal },
@@ -215,6 +217,7 @@ const mentorSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Mentor / SME Dashboard', path: '/mentor/dashboard', icon: LayoutDashboard },
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
@@ -237,6 +240,7 @@ const managementSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Management Dashboard', path: '/management/dashboard', icon: LayoutDashboard },
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
@@ -251,6 +255,7 @@ const managementSidebar: NavSection[] = [
     ],
   },
 ];
+
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const location = useLocation();
