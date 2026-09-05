@@ -31,7 +31,6 @@ import {
   UserPlus,
   Settings,
   GitBranch,
-  Layers,
   Terminal,
   LineChart,
   MessageSquare,
