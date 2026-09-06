@@ -91,6 +91,8 @@ export const resourceApi = {
   updateMyProfile: async (data: {
     current_status?: 'assigned' | 'bench' | 'training';
     phone_number?: string;
+    designation?: string;
+    experience_years?: number;
     assignment_id?: number;
     end_date?: string;
   }): Promise<ResourceProfile> => {

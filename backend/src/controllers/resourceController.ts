@@ -62,10 +62,18 @@ export const updateMyResourceProfile = async (req: AuthRequest, res: Response): 
       return;
     }
 
-    const { current_status, assignment_id, end_date, phone_number, profile_image_url } = req.body;
+    const { current_status, assignment_id, end_date, phone_number, profile_image_url, designation, experience_years } = req.body;
 
     if (phone_number !== undefined) {
       await ResourceService.updateResourceProfile(resource.id, { phone_number });
+    }
+
+    if (designation !== undefined && designation.trim().length > 0) {
+      await ResourceService.updateResourceProfile(resource.id, { designation: designation.trim() });
+    }
+
+    if (experience_years !== undefined && experience_years !== null && !isNaN(Number(experience_years))) {
+      await ResourceService.updateResourceProfile(resource.id, { experience_years: Number(experience_years) });
     }
 
     if (profile_image_url !== undefined) {

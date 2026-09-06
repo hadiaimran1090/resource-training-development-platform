@@ -230,6 +230,28 @@ export const migrateLocalToNeon = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        is_revoked BOOLEAN DEFAULT FALSE,
+        replaced_by_token VARCHAR(255),
+        user_agent VARCHAR(500),
+        ip_address VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        action VARCHAR(100) NOT NULL,
+        entity_type VARCHAR(100) NOT NULL,
+        entity_id INT,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
@@ -241,6 +263,8 @@ export const migrateLocalToNeon = async () => {
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        audit_logs,
+        refresh_tokens,
         daily_activities,
         training_assignments,
         training_modules,
@@ -506,6 +530,30 @@ export const migrateLocalToNeon = async () => {
     }
     console.log(`Migrated ${daRes.rows.length} daily_activities.`);
     await neonClient.query(`SELECT setval('daily_activities_id_seq', (SELECT COALESCE(MAX(id), 1) FROM daily_activities))`);
+
+    // 19. Refresh Tokens
+    const rtRes = await localClient.query(`SELECT * FROM refresh_tokens ORDER BY id`);
+    for (const rt of rtRes.rows) {
+      await neonClient.query(
+        `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, is_revoked, replaced_by_token, user_agent, ip_address, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [rt.id, rt.user_id, rt.token_hash, rt.expires_at, rt.is_revoked, rt.replaced_by_token, rt.user_agent, rt.ip_address, rt.created_at]
+      );
+    }
+    console.log(`Migrated ${rtRes.rows.length} refresh_tokens.`);
+    await neonClient.query(`SELECT setval('refresh_tokens_id_seq', (SELECT COALESCE(MAX(id), 1) FROM refresh_tokens))`);
+
+    // 20. Audit Logs
+    const alRes = await localClient.query(`SELECT * FROM audit_logs ORDER BY id`);
+    for (const al of alRes.rows) {
+      await neonClient.query(
+        `INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [al.id, al.user_id, al.action, al.entity_type, al.entity_id, al.details, al.created_at]
+      );
+    }
+    console.log(`Migrated ${alRes.rows.length} audit_logs.`);
+    await neonClient.query(`SELECT setval('audit_logs_id_seq', (SELECT COALESCE(MAX(id), 1) FROM audit_logs))`);
 
     console.log('\n======================================================');
     console.log(' SUCCESS: All local database data & Day 7 Training Assignments fully migrated to Neon Cloud PostgreSQL!');

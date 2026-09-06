@@ -37,7 +37,15 @@ export const ResourceProfilePage: React.FC = () => {
 
   // Phone Number Editing State
   const [isEditingPhone, setIsEditingPhone] = useState(false);
+
+  // Designation Editing State
+  const [isEditingDesignation, setIsEditingDesignation] = useState(false);
+  const [designationInput, setDesignationInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
+
+  // Experience Editing State
+  const [isEditingExperience, setIsEditingExperience] = useState(false);
+  const [experienceInput, setExperienceInput] = useState('');
 
   // Status Change Modal State
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -64,6 +72,7 @@ export const ResourceProfilePage: React.FC = () => {
       if (data) {
         setSelectedStatus(data.current_status);
         setPhoneInput(data.phone_number || '+1-555-0192');
+        setDesignationInput(data.designation || 'Engineering Professional');
       }
       setError(null);
     } catch (err: any) {
@@ -87,6 +96,40 @@ export const ResourceProfilePage: React.FC = () => {
       fetchProfile();
     } catch (err: any) {
       alert('Failed to update phone number.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveDesignation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!designationInput.trim()) return;
+    try {
+      setSubmitting(true);
+      await resourceApi.updateMyProfile({ designation: designationInput.trim() });
+      setIsEditingDesignation(false);
+      fetchProfile();
+    } catch (err: any) {
+      alert('Failed to update designation.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveExperience = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(experienceInput);
+    if (isNaN(val) || val < 0) {
+      alert('Please enter a valid non-negative number for experience years.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await resourceApi.updateMyProfile({ experience_years: val });
+      setIsEditingExperience(false);
+      fetchProfile();
+    } catch (err: any) {
+      alert('Failed to update experience.');
     } finally {
       setSubmitting(false);
     }
@@ -342,11 +385,88 @@ export const ResourceProfilePage: React.FC = () => {
             <Briefcase className="w-4 h-4" />
             <span>CURRENT DESIGNATION</span>
           </div>
-          <p className="text-base font-extrabold text-slate-900">{profile.designation}</p>
-          <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
-            <Award className="w-3.5 h-3.5 text-amber-500" />
-            <span>{profile.experience_years} Years Professional Experience</span>
-          </p>
+          {isEditingDesignation ? (
+            <form onSubmit={handleSaveDesignation} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={designationInput}
+                onChange={(e) => setDesignationInput(e.target.value)}
+                autoFocus
+                className="flex-1 px-3 py-1.5 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                placeholder="e.g. Senior Software Engineer"
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsEditingDesignation(false); setDesignationInput(profile.designation); }}
+                className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition"
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <p className="text-base font-extrabold text-slate-900">{profile.designation}</p>
+              <button
+                onClick={() => { setDesignationInput(profile.designation); setIsEditingDesignation(true); }}
+                className="p-1 text-slate-400 hover:text-blue-600 rounded transition cursor-pointer"
+                title="Edit Designation"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {isEditingExperience ? (
+            <form onSubmit={handleSaveExperience} className="flex items-center gap-2 pt-1">
+              <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="50"
+                value={experienceInput}
+                onChange={(e) => setExperienceInput(e.target.value)}
+                autoFocus
+                className="w-20 px-2 py-1 text-xs font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                placeholder="Years"
+              />
+              <span className="text-xs text-slate-400 font-semibold">Years</span>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="p-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition cursor-pointer"
+                title="Save Experience"
+              >
+                <Check className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsEditingExperience(false); setExperienceInput(String(profile.experience_years)); }}
+                className="p-1 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition cursor-pointer"
+                title="Cancel"
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+              <span>{profile.experience_years} Years Professional Experience</span>
+              <button
+                onClick={() => { setExperienceInput(String(profile.experience_years)); setIsEditingExperience(true); }}
+                className="p-1 text-slate-400 hover:text-amber-600 rounded transition cursor-pointer"
+                title="Edit Experience"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </p>
+          )}
         </div>
 
         {/* Region Card */}
