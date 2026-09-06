@@ -77,28 +77,21 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Live DB Connected
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchDashboardStats}
-            title="Refresh Data"
-            className="p-2 text-slate-500 hover:text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-all cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => navigate('/admin/users')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-          >
-            + Add User
-          </button>
-        </div>
+      <div className="flex justify-end items-center gap-3 mb-2">
+        <button
+          onClick={fetchDashboardStats}
+          title="Refresh Data"
+          className="p-2 text-slate-500 hover:text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
+        </button>
+        <button
+          onClick={() => navigate('/admin/users')}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+        >
+          + Add User
+        </button>
       </div>
 
       {/* KPI Section */}

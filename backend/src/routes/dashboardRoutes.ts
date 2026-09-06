@@ -7,7 +7,13 @@ const router = Router();
 router.get(
   '/admin/dashboard-stats',
   authenticateToken,
-  requireRoles('System Administrator', 'Practice Lead', 'Regional Lead', 'Management'),
+  requireRoles('System Administrator', 'Practice Lead', 'Regional Lead', 'Training Manager', 'Mentor', 'Management', 'Resource'),
+  DashboardController.getDashboardStats
+);
+
+router.get(
+  '/dashboard/stats',
+  authenticateToken,
   DashboardController.getDashboardStats
 );
 
