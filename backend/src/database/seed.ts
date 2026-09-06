@@ -592,6 +592,35 @@ export const seedDatabase = async () => {
       }
     }
 
+    // ==========================================
+    // 16. Seed: Initial Audit Logs for Admin Overview
+    // ==========================================
+    const auditCountRes = await client.query(`SELECT COUNT(*) FROM audit_logs`);
+    if (parseInt(auditCountRes.rows[0].count, 10) < 5) {
+      const adminUser = await client.query(`SELECT id FROM users WHERE email = 'admin@rtdp.com'`);
+      const rohanUser = await client.query(`SELECT id FROM users WHERE email = 'rohan@rtdp.com'`);
+      const sarahUser = await client.query(`SELECT id FROM users WHERE email = 'sarah@rtdp.com'`);
+
+      const adminId = adminUser.rows[0]?.id || null;
+      const rohanId = rohanUser.rows[0]?.id || null;
+      const sarahId = sarahUser.rows[0]?.id || null;
+
+      const sampleLogs = [
+        { userId: adminId, action: 'Created User Account', entityType: 'users', details: 'Created user rachel@rtdp.com' },
+        { userId: rohanId, action: 'Created Training Assignment', entityType: 'training_assignments', details: 'Assigned AWS Cloud Track to Rachel Resource' },
+        { userId: sarahId, action: 'Updated Practice Mapping', entityType: 'practices', details: 'Assigned Software Engineering Practice Lead' },
+        { userId: adminId, action: 'System Config Sync', entityType: 'system_settings', details: 'Synchronized Regional & Practice Catalog metadata' },
+        { userId: rohanId, action: 'Approved Training Assignment', entityType: 'training_assignments', details: 'Approved Day 1-3 modules for Rachel Resource' },
+      ];
+
+      for (const log of sampleLogs) {
+        await client.query(
+          `INSERT INTO audit_logs (user_id, action, entity_type, details) VALUES ($1, $2, $3, $4)`,
+          [log.userId, log.action, log.entityType, log.details]
+        );
+      }
+    }
+
     console.log('[Database] Connected & initialized successfully.');
 
   } catch (error: any) {

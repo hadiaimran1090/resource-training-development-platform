@@ -133,6 +133,41 @@ export interface PracticesResponse {
   data: PracticeCatalog[];
 }
 
+export interface DashboardStatsData {
+  totalUsers: number;
+  activeUsers: number;
+  activeRegions: number;
+  activePractices: number;
+  systemAlertsCount: number;
+  systemAlerts: Array<{
+    type: string;
+    message: string;
+    severity: 'critical' | 'warning' | 'info';
+  }>;
+  userDistribution: Array<{
+    name: string;
+    value: number;
+    percentage: number;
+    color: string;
+  }>;
+  recentActivities: Array<{
+    id: number;
+    userName: string;
+    userInitials: string;
+    action: string;
+    entity: string;
+    time: string;
+    createdAt: string;
+    status: 'Success' | 'Failed' | 'Pending';
+  }>;
+}
+
+export interface DashboardStatsResponse {
+  success: boolean;
+  message: string;
+  data: DashboardStatsData;
+}
+
 export const userApi = {
   getUsers: async (filters?: {
     search?: string;
@@ -194,20 +229,25 @@ export const userApi = {
   },
 
   getRegions: async (): Promise<RegionCatalog[]> => {
-  const response = await apiClient.get<RegionsResponse | RegionCatalog[]>('/regions');
+    const response = await apiClient.get<RegionsResponse | RegionCatalog[]>('/regions');
 
-  return Array.isArray(response.data)
-    ? response.data
-    : response.data.data;
-},
+    return Array.isArray(response.data)
+      ? response.data
+      : response.data.data;
+  },
+
   getPractices: async (regionId?: number): Promise<PracticeCatalog[]> => {
-  const url = regionId ? `/practices?regionId=${regionId}` : '/practices';
+    const url = regionId ? `/practices?regionId=${regionId}` : '/practices';
 
-  const response = await apiClient.get<PracticesResponse | PracticeCatalog[]>(url);
+    const response = await apiClient.get<PracticesResponse | PracticeCatalog[]>(url);
 
-  return Array.isArray(response.data)
-    ? response.data
-    : response.data.data;
-},
+    return Array.isArray(response.data)
+      ? response.data
+      : response.data.data;
+  },
 
+  getDashboardStats: async (): Promise<DashboardStatsData> => {
+    const response = await apiClient.get<DashboardStatsResponse>('/admin/dashboard-stats');
+    return response.data.data;
+  },
 };
