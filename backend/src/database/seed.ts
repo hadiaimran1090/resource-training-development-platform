@@ -525,6 +525,73 @@ export const seedDatabase = async () => {
       }
     }
 
+    // ==========================================
+    // 15. Seed: Sample Training Assignment & Daily Activities
+    // ==========================================
+    const rachelUserForAsg = await client.query(`SELECT id FROM users WHERE email = 'rachel@rtdp.com'`);
+    const rohanUserForAsg = await client.query(`SELECT id FROM users WHERE email = 'rohan@rtdp.com'`);
+
+    if (rachelUserForAsg.rows.length > 0 && rohanUserForAsg.rows.length > 0 && trackId) {
+      const rachelUserId = rachelUserForAsg.rows[0].id;
+      const rohanUserId = rohanUserForAsg.rows[0].id;
+
+      const rachelRes = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [rachelUserId]);
+      if (rachelRes.rows.length > 0) {
+        const resourceId = rachelRes.rows[0].id;
+
+        let assignmentId: number;
+        const taCheck = await client.query(
+          `SELECT id FROM training_assignments WHERE resource_id = $1 AND track_id = $2`,
+          [resourceId, trackId]
+        );
+
+        if (taCheck.rows.length === 0) {
+          const taInsert = await client.query(
+            `INSERT INTO training_assignments (resource_id, track_id, assigned_by, start_date, status, approval_status, approved_by)
+             VALUES ($1, $2, $3, CURRENT_DATE, 'in_progress', 'approved', $3)
+             RETURNING id`,
+            [resourceId, trackId, rohanUserId]
+          );
+          assignmentId = taInsert.rows[0].id;
+        } else {
+          assignmentId = taCheck.rows[0].id;
+        }
+
+        // Seed daily activities if none exist for this assignment
+        const daCheck = await client.query(
+          `SELECT COUNT(*) FROM daily_activities WHERE training_assignment_id = $1`,
+          [assignmentId]
+        );
+
+        if (parseInt(daCheck.rows[0].count, 10) === 0) {
+          const modulesRes = await client.query(
+            `SELECT tm.id, tm.name, tm.sequence_order, tm.day_number, tm.content_type
+             FROM training_modules tm
+             INNER JOIN training_programs tp ON tm.program_id = tp.id
+             WHERE tp.track_id = $1
+             ORDER BY tm.day_number ASC, tm.sequence_order ASC`,
+            [trackId]
+          );
+
+          for (const mod of modulesRes.rows) {
+            let actType = 'training';
+            if (mod.content_type === 'lab') actType = 'coding';
+            if (mod.content_type === 'document') actType = 'reading';
+            if (mod.name.toLowerCase().includes('assessment')) actType = 'assessment';
+
+            const status = mod.day_number <= 2 ? 'completed' : mod.day_number === 3 ? 'in_progress' : 'pending';
+            const completedDate = status === 'completed' ? new Date() : null;
+
+            await client.query(
+              `INSERT INTO daily_activities (training_assignment_id, day_number, activity_type, description, status, completed_date)
+               VALUES ($1, $2, $3, $4, $5, $6)`,
+              [assignmentId, mod.day_number, actType, `Complete module: ${mod.name}`, status, completedDate]
+            );
+          }
+        }
+      }
+    }
+
     console.log('[Database] Connected & initialized successfully.');
 
   } catch (error: any) {

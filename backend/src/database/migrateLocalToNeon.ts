@@ -334,29 +334,47 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${usersRes.rows.length} users (initial stage).`);
     await neonClient.query(`SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))`);
 
+    // Valid Sets for FK Lookup
+    const validUserIdsRes = await neonClient.query(`SELECT id FROM users`);
+    const validUserIds = new Set(validUserIdsRes.rows.map((r: any) => r.id));
+
+    const validRegionIdsRes = await neonClient.query(`SELECT id FROM regions`);
+    const validRegionIds = new Set(validRegionIdsRes.rows.map((r: any) => r.id));
+
     // 4. Practices (Now lead_user_id FK references existing users)
     const practicesRes = await localClient.query(`SELECT * FROM practices ORDER BY id`);
     for (const p of practicesRes.rows) {
+      const leadUserId = p.lead_user_id && validUserIds.has(p.lead_user_id) ? p.lead_user_id : null;
+      const regId = p.region_id && validRegionIds.has(p.region_id) ? p.region_id : null;
       await neonClient.query(
         `INSERT INTO practices (id, name, description, region_id, lead_user_id, status, is_active, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [p.id, p.name, p.description, p.region_id, p.lead_user_id, p.status, p.is_active, p.created_at, p.updated_at]
+        [p.id, p.name, p.description, regId, leadUserId, p.status, p.is_active, p.created_at, p.updated_at]
       );
     }
     console.log(`Migrated ${practicesRes.rows.length} practices.`);
     await neonClient.query(`SELECT setval('practices_id_seq', (SELECT COALESCE(MAX(id), 1) FROM practices))`);
 
+    const validPracticeIdsRes = await neonClient.query(`SELECT id FROM practices`);
+    const validPracticeIds = new Set(validPracticeIdsRes.rows.map((r: any) => r.id));
+
     // 4.5 Link region_id and practice_id back on Users
     for (const u of usersRes.rows) {
+      const regId = u.region_id && validRegionIds.has(u.region_id) ? u.region_id : null;
+      const pracId = u.practice_id && validPracticeIds.has(u.practice_id) ? u.practice_id : null;
       await neonClient.query(
         `UPDATE users SET region_id = $1, practice_id = $2 WHERE id = $3`,
-        [u.region_id, u.practice_id, u.id]
+        [regId, pracId, u.id]
       );
     }
     console.log(`Updated region_id & practice_id FK references for ${usersRes.rows.length} users.`);
 
     // 5. Region-Practices Junction Table
-    const regPracRes = await localClient.query(`SELECT * FROM region_practices`);
+    const regPracRes = await localClient.query(
+      `SELECT rp.* FROM region_practices rp
+       INNER JOIN regions r ON rp.region_id = r.id
+       INNER JOIN practices p ON rp.practice_id = p.id`
+    );
     for (const rp of regPracRes.rows) {
       await neonClient.query(
         `INSERT INTO region_practices (region_id, practice_id, created_at)
@@ -367,7 +385,11 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${regPracRes.rows.length} region_practices junction links.`);
 
     // 6. User Roles
-    const userRolesRes = await localClient.query(`SELECT * FROM user_roles`);
+    const userRolesRes = await localClient.query(
+      `SELECT ur.* FROM user_roles ur
+       INNER JOIN users u ON ur.user_id = u.id
+       INNER JOIN roles r ON ur.role_id = r.id`
+    );
     for (const ur of userRolesRes.rows) {
       await neonClient.query(
         `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)`,
@@ -377,17 +399,24 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${userRolesRes.rows.length} user_roles.`);
 
     // 7. Resources
-    const resRes = await localClient.query(`SELECT * FROM resources ORDER BY id`);
+    const resRes = await localClient.query(
+      `SELECT r.* FROM resources r
+       INNER JOIN users u ON r.user_id = u.id
+       ORDER BY r.id`
+    );
     for (const r of resRes.rows) {
+      const regId = r.region_id && validRegionIds.has(r.region_id) ? r.region_id : null;
+      const pracId = r.practice_id && validPracticeIds.has(r.practice_id) ? r.practice_id : null;
+      const regLeadId = r.regional_lead_id && validUserIds.has(r.regional_lead_id) ? r.regional_lead_id : null;
       await neonClient.query(
         `INSERT INTO resources (id, user_id, region_id, practice_id, regional_lead_id, phone_number, designation, experience_years, current_status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           r.id,
           r.user_id,
-          r.region_id,
-          r.practice_id,
-          r.regional_lead_id,
+          regId,
+          pracId,
+          regLeadId,
           r.phone_number || null,
           r.designation,
           r.experience_years,
@@ -400,8 +429,15 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${resRes.rows.length} resources.`);
     await neonClient.query(`SELECT setval('resources_id_seq', (SELECT COALESCE(MAX(id), 1) FROM resources))`);
 
+    const validResourceIdsRes = await neonClient.query(`SELECT id FROM resources`);
+    const validResourceIds = new Set(validResourceIdsRes.rows.map((r: any) => r.id));
+
     // 8. Bench History Records
-    const benchRes = await localClient.query(`SELECT * FROM bench_records ORDER BY id`);
+    const benchRes = await localClient.query(
+      `SELECT b.* FROM bench_records b
+       INNER JOIN users u ON b.user_id = u.id
+       ORDER BY b.id`
+    );
     for (const b of benchRes.rows) {
       await neonClient.query(
         `INSERT INTO bench_records (id, user_id, start_date, end_date, created_at, updated_at)
@@ -413,18 +449,23 @@ export const migrateLocalToNeon = async () => {
     await neonClient.query(`SELECT setval('bench_records_id_seq', (SELECT COALESCE(MAX(id), 1) FROM bench_records))`);
 
     // 9. Assignments
-    const asgRes = await localClient.query(`SELECT * FROM assignments ORDER BY id`);
+    const asgRes = await localClient.query(
+      `SELECT a.* FROM assignments a
+       INNER JOIN resources r ON a.resource_id = r.id
+       ORDER BY a.id`
+    );
     for (const a of asgRes.rows) {
+      const assignedBy = a.assigned_by_user_id && validUserIds.has(a.assigned_by_user_id) ? a.assigned_by_user_id : null;
       await neonClient.query(
         `INSERT INTO assignments (id, resource_id, assigned_by_user_id, client_name, project_name, start_date, end_date, status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [a.id, a.resource_id, a.assigned_by_user_id || null, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at]
+        [a.id, a.resource_id, assignedBy, a.client_name, a.project_name, a.start_date, a.end_date, a.status, a.created_at, a.updated_at]
       );
     }
     console.log(`Migrated ${asgRes.rows.length} assignments.`);
     await neonClient.query(`SELECT setval('assignments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assignments))`);
 
-    // 10. Skills Catalog (Day 5)
+    // 10. Skills Catalog
     const skillsRes = await localClient.query(`SELECT * FROM skills ORDER BY id`);
     for (const s of skillsRes.rows) {
       await neonClient.query(
@@ -436,7 +477,10 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${skillsRes.rows.length} skills.`);
     await neonClient.query(`SELECT setval('skills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM skills))`);
 
-    // 11. Role Profiles (Day 5)
+    const validSkillIdsRes = await neonClient.query(`SELECT id FROM skills`);
+    const validSkillIds = new Set(validSkillIdsRes.rows.map((s: any) => s.id));
+
+    // 11. Role Profiles
     const rpRes = await localClient.query(`SELECT * FROM role_profiles ORDER BY id`);
     for (const rp of rpRes.rows) {
       await neonClient.query(
@@ -448,8 +492,15 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${rpRes.rows.length} role_profiles.`);
     await neonClient.query(`SELECT setval('role_profiles_id_seq', (SELECT COALESCE(MAX(id), 1) FROM role_profiles))`);
 
-    // 12. Role Profile Skills (Day 5)
-    const rpsRes = await localClient.query(`SELECT * FROM role_profile_skills`);
+    const validRpIdsRes = await neonClient.query(`SELECT id FROM role_profiles`);
+    const validRpIds = new Set(validRpIdsRes.rows.map((rp: any) => rp.id));
+
+    // 12. Role Profile Skills
+    const rpsRes = await localClient.query(
+      `SELECT rps.* FROM role_profile_skills rps
+       INNER JOIN role_profiles rp ON rps.role_profile_id = rp.id
+       INNER JOIN skills s ON rps.skill_id = s.id`
+    );
     for (const rps of rpsRes.rows) {
       await neonClient.query(
         `INSERT INTO role_profile_skills (role_profile_id, skill_id, required_level)
@@ -459,8 +510,13 @@ export const migrateLocalToNeon = async () => {
     }
     console.log(`Migrated ${rpsRes.rows.length} role_profile_skills.`);
 
-    // 13. Resource Skills Matrix (Day 5)
-    const rsRes = await localClient.query(`SELECT * FROM resource_skills ORDER BY id`);
+    // 13. Resource Skills Matrix
+    const rsRes = await localClient.query(
+      `SELECT rs.* FROM resource_skills rs
+       INNER JOIN resources r ON rs.resource_id = r.id
+       INNER JOIN skills s ON rs.skill_id = s.id
+       ORDER BY rs.id`
+    );
     for (const rs of rsRes.rows) {
       await neonClient.query(
         `INSERT INTO resource_skills (id, resource_id, skill_id, current_level, target_level, source, last_updated)
@@ -471,20 +527,28 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${rsRes.rows.length} resource_skills.`);
     await neonClient.query(`SELECT setval('resource_skills_id_seq', (SELECT COALESCE(MAX(id), 1) FROM resource_skills))`);
 
-    // 14. Training Tracks (Day 6)
+    // 14. Training Tracks
     const ttRes = await localClient.query(`SELECT * FROM training_tracks ORDER BY id`);
     for (const tt of ttRes.rows) {
+      const targetRpId = tt.target_role_profile_id && validRpIds.has(tt.target_role_profile_id) ? tt.target_role_profile_id : null;
       await neonClient.query(
         `INSERT INTO training_tracks (id, name, target_role_profile_id, description, duration_days, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [tt.id, tt.name, tt.target_role_profile_id || null, tt.description, tt.duration_days, tt.created_at, tt.updated_at]
+        [tt.id, tt.name, targetRpId, tt.description, tt.duration_days, tt.created_at, tt.updated_at]
       );
     }
     console.log(`Migrated ${ttRes.rows.length} training_tracks.`);
     await neonClient.query(`SELECT setval('training_tracks_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_tracks))`);
 
-    // 15. Training Programs (Day 6)
-    const tpRes = await localClient.query(`SELECT * FROM training_programs ORDER BY id`);
+    const validTrackIdsRes = await neonClient.query(`SELECT id FROM training_tracks`);
+    const validTrackIds = new Set(validTrackIdsRes.rows.map((t: any) => t.id));
+
+    // 15. Training Programs
+    const tpRes = await localClient.query(
+      `SELECT tp.* FROM training_programs tp
+       INNER JOIN training_tracks tt ON tp.track_id = tt.id
+       ORDER BY tp.id`
+    );
     for (const tp of tpRes.rows) {
       await neonClient.query(
         `INSERT INTO training_programs (id, track_id, name, skill_level, duration_days, prerequisites, created_at, updated_at)
@@ -495,8 +559,12 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${tpRes.rows.length} training_programs.`);
     await neonClient.query(`SELECT setval('training_programs_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_programs))`);
 
-    // 16. Training Modules (Day 6)
-    const tmRes = await localClient.query(`SELECT * FROM training_modules ORDER BY id`);
+    // 16. Training Modules
+    const tmRes = await localClient.query(
+      `SELECT tm.* FROM training_modules tm
+       INNER JOIN training_programs tp ON tm.program_id = tp.id
+       ORDER BY tm.id`
+    );
     for (const tm of tmRes.rows) {
       await neonClient.query(
         `INSERT INTO training_modules (id, program_id, name, sequence_order, day_number, content_type, content_url, created_at, updated_at)
@@ -507,20 +575,31 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${tmRes.rows.length} training_modules.`);
     await neonClient.query(`SELECT setval('training_modules_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_modules))`);
 
-    // 17. Training Assignments (Day 7)
-    const taRes = await localClient.query(`SELECT * FROM training_assignments ORDER BY id`);
+    // 17. Training Assignments
+    const taRes = await localClient.query(
+      `SELECT ta.* FROM training_assignments ta
+       INNER JOIN resources r ON ta.resource_id = r.id
+       INNER JOIN training_tracks tt ON ta.track_id = tt.id
+       INNER JOIN users u ON ta.assigned_by = u.id
+       ORDER BY ta.id`
+    );
     for (const ta of taRes.rows) {
+      const approvedBy = ta.approved_by && validUserIds.has(ta.approved_by) ? ta.approved_by : null;
       await neonClient.query(
         `INSERT INTO training_assignments (id, resource_id, track_id, assigned_by, start_date, status, approval_status, approved_by, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [ta.id, ta.resource_id, ta.track_id, ta.assigned_by, ta.start_date, ta.status, ta.approval_status, ta.approved_by, ta.created_at, ta.updated_at]
+        [ta.id, ta.resource_id, ta.track_id, ta.assigned_by, ta.start_date, ta.status, ta.approval_status, approvedBy, ta.created_at, ta.updated_at]
       );
     }
     console.log(`Migrated ${taRes.rows.length} training_assignments.`);
     await neonClient.query(`SELECT setval('training_assignments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_assignments))`);
 
-    // 18. Daily Activities (Day 7)
-    const daRes = await localClient.query(`SELECT * FROM daily_activities ORDER BY id`);
+    // 18. Daily Activities
+    const daRes = await localClient.query(
+      `SELECT da.* FROM daily_activities da
+       INNER JOIN training_assignments ta ON da.training_assignment_id = ta.id
+       ORDER BY da.id`
+    );
     for (const da of daRes.rows) {
       await neonClient.query(
         `INSERT INTO daily_activities (id, training_assignment_id, day_number, activity_type, description, status, completed_date, created_at, updated_at)
@@ -532,7 +611,11 @@ export const migrateLocalToNeon = async () => {
     await neonClient.query(`SELECT setval('daily_activities_id_seq', (SELECT COALESCE(MAX(id), 1) FROM daily_activities))`);
 
     // 19. Refresh Tokens
-    const rtRes = await localClient.query(`SELECT * FROM refresh_tokens ORDER BY id`);
+    const rtRes = await localClient.query(
+      `SELECT rt.* FROM refresh_tokens rt
+       INNER JOIN users u ON rt.user_id = u.id
+       ORDER BY rt.id`
+    );
     for (const rt of rtRes.rows) {
       await neonClient.query(
         `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, is_revoked, replaced_by_token, user_agent, ip_address, created_at)
@@ -546,10 +629,11 @@ export const migrateLocalToNeon = async () => {
     // 20. Audit Logs
     const alRes = await localClient.query(`SELECT * FROM audit_logs ORDER BY id`);
     for (const al of alRes.rows) {
+      const userId = al.user_id && validUserIds.has(al.user_id) ? al.user_id : null;
       await neonClient.query(
         `INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [al.id, al.user_id, al.action, al.entity_type, al.entity_id, al.details, al.created_at]
+        [al.id, userId, al.action, al.entity_type, al.entity_id, al.details, al.created_at]
       );
     }
     console.log(`Migrated ${alRes.rows.length} audit_logs.`);
