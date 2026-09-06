@@ -252,17 +252,75 @@ export const migrateLocalToNeon = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS assessments (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(30) NOT NULL CHECK (type IN ('knowledge', 'technical', 'interview', 'certification_prep')),
+        related_module_id INT REFERENCES training_modules(id) ON DELETE SET NULL,
+        total_questions INT NOT NULL DEFAULT 0,
+        passing_score NUMERIC(5,2) NOT NULL DEFAULT 70.00,
+        created_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS assessment_questions (
+        id SERIAL PRIMARY KEY,
+        assessment_id INT NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+        question_text TEXT NOT NULL,
+        question_type VARCHAR(20) NOT NULL CHECK (question_type IN ('mcq', 'true_false', 'short_answer')),
+        options JSONB,
+        correct_answer TEXT NOT NULL,
+        marks NUMERIC(5,2) NOT NULL DEFAULT 1.00,
+        sequence_order INT NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS assessment_attempts (
+        id SERIAL PRIMARY KEY,
+        assessment_id INT NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        score NUMERIC(5,2),
+        passed BOOLEAN,
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS assessment_answers (
+        id SERIAL PRIMARY KEY,
+        attempt_id INT NOT NULL REFERENCES assessment_attempts(id) ON DELETE CASCADE,
+        question_id INT NOT NULL REFERENCES assessment_questions(id) ON DELETE CASCADE,
+        given_answer TEXT,
+        is_correct BOOLEAN,
+        marks_obtained NUMERIC(5,2) DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
       CREATE INDEX IF NOT EXISTS idx_daily_activities_assignment_id ON daily_activities(training_assignment_id);
       CREATE INDEX IF NOT EXISTS idx_daily_activities_day_number ON daily_activities(day_number);
+      CREATE INDEX IF NOT EXISTS idx_assessments_type ON assessments(type);
+      CREATE INDEX IF NOT EXISTS idx_assessments_created_by ON assessments(created_by);
+      CREATE INDEX IF NOT EXISTS idx_assessment_questions_assessment ON assessment_questions(assessment_id);
+      CREATE INDEX IF NOT EXISTS idx_assessment_attempts_assessment ON assessment_attempts(assessment_id);
+      CREATE INDEX IF NOT EXISTS idx_assessment_attempts_resource ON assessment_attempts(resource_id);
+      CREATE INDEX IF NOT EXISTS idx_assessment_answers_attempt ON assessment_answers(attempt_id);
     `);
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        assessment_answers,
+        assessment_attempts,
+        assessment_questions,
+        assessments,
         audit_logs,
         refresh_tokens,
         daily_activities,
@@ -639,8 +697,69 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${alRes.rows.length} audit_logs.`);
     await neonClient.query(`SELECT setval('audit_logs_id_seq', (SELECT COALESCE(MAX(id), 1) FROM audit_logs))`);
 
+    // 21. Assessments
+    const assRes = await localClient.query(`SELECT * FROM assessments ORDER BY id`);
+    for (const a of assRes.rows) {
+      const createdBy = a.created_by && validUserIds.has(a.created_by) ? a.created_by : null;
+      if (!createdBy) continue;
+      await neonClient.query(
+        `INSERT INTO assessments (id, name, type, related_module_id, total_questions, passing_score, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [a.id, a.name, a.type, a.related_module_id || null, a.total_questions, a.passing_score, createdBy, a.created_at, a.updated_at]
+      );
+    }
+    console.log(`Migrated ${assRes.rows.length} assessments.`);
+    await neonClient.query(`SELECT setval('assessments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessments))`);
+
+    // 22. Assessment Questions
+    const aqRes = await localClient.query(`SELECT * FROM assessment_questions ORDER BY id`);
+    for (const q of aqRes.rows) {
+      await neonClient.query(
+        `INSERT INTO assessment_questions (id, assessment_id, question_text, question_type, options, correct_answer, marks, sequence_order, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          q.id,
+          q.assessment_id,
+          q.question_text,
+          q.question_type,
+          typeof q.options === 'string' ? q.options : JSON.stringify(q.options),
+          q.correct_answer,
+          q.marks,
+          q.sequence_order,
+          q.created_at,
+          q.updated_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${aqRes.rows.length} assessment_questions.`);
+    await neonClient.query(`SELECT setval('assessment_questions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_questions))`);
+
+    // 23. Assessment Attempts
+    const attRes = await localClient.query(`SELECT * FROM assessment_attempts ORDER BY id`);
+    for (const att of attRes.rows) {
+      await neonClient.query(
+        `INSERT INTO assessment_attempts (id, assessment_id, resource_id, score, passed, started_at, completed_at, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [att.id, att.assessment_id, att.resource_id, att.score, att.passed, att.started_at, att.completed_at, att.created_at, att.updated_at]
+      );
+    }
+    console.log(`Migrated ${attRes.rows.length} assessment_attempts.`);
+    await neonClient.query(`SELECT setval('assessment_attempts_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_attempts))`);
+
+    // 24. Assessment Answers
+    const ansRes = await localClient.query(`SELECT * FROM assessment_answers ORDER BY id`);
+    for (const ans of ansRes.rows) {
+      await neonClient.query(
+        `INSERT INTO assessment_answers (id, attempt_id, question_id, given_answer, is_correct, marks_obtained, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [ans.id, ans.attempt_id, ans.question_id, ans.given_answer, ans.is_correct, ans.marks_obtained, ans.created_at, ans.updated_at]
+      );
+    }
+    console.log(`Migrated ${ansRes.rows.length} assessment_answers.`);
+    await neonClient.query(`SELECT setval('assessment_answers_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_answers))`);
+
     console.log('\n======================================================');
-    console.log(' SUCCESS: All local database data & Day 7 Training Assignments fully migrated to Neon Cloud PostgreSQL!');
+    console.log(' SUCCESS: All local database data & Day 8 Assessment Engine data fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
     console.error('Migration error:', error?.message || error);

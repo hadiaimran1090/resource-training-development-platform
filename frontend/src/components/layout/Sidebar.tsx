@@ -72,7 +72,7 @@ const resourceSidebar: NavSection[] = [
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'My Training Plan', path: '/resource/my-training-plan', icon: Route },
       { name: "Today's Activities", path: '/resource/todays-activities', icon: Calendar },
-      { name: 'Assessments', path: '/resource/dashboard#assessments', icon: FileCheck },
+      { name: 'Assessments', path: '/resource/assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/resource/dashboard#challenges', icon: Code },
     ],
   },
@@ -104,8 +104,16 @@ const regionalLeadSidebar: NavSection[] = [
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
       { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
-      { name: 'Assessments Review', path: '/regional-lead/dashboard#assessments-review', icon: FileText },
       { name: 'Interviews', path: '/regional-lead/dashboard#interviews', icon: Video },
+    ],
+  },
+  {
+    title: 'Curriculum & Catalog',
+    items: [
+      { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
+      { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
+      { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
+      { name: 'Assessments', path: '/regional-lead/assessments', icon: FileCheck },
     ],
   },
   {
@@ -168,14 +176,6 @@ const adminSidebar: NavSection[] = [
     ],
   },
   {
-    title: 'Catalog & Profiles',
-    items: [
-      { name: 'Training Catalog', path: '/admin/training-catalog', icon: GitBranch },
-      { name: 'Skills Catalog', path: '/admin/skills', icon: BookOpen },
-      { name: 'Role Profiles', path: '/admin/role-profiles', icon: UserPlus },
-    ],
-  },
-  {
     title: 'System Control',
     items: [
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
@@ -201,7 +201,7 @@ const trainingManagerSidebar: NavSection[] = [
       { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Daily Activity Templates', path: '/training-manager/dashboard#templates', icon: Calendar },
-      { name: 'Assessments', path: '/training-manager/dashboard#assessments', icon: FileCheck },
+      { name: 'Assessments', path: '/training-manager/assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/training-manager/dashboard#challenges', icon: Terminal },
     ],
   },
@@ -263,8 +263,8 @@ const PREFERRED_SECTION_ORDER = [
   'Overview',
   'Learning & Development',
   'Approvals & Tracking',
+  'Curriculum & Catalog',
   'User & Access Control',
-  'Catalog & Profiles',
   'System Control',
   'Mentorship Activities',
   'Executive Insights',

@@ -621,6 +621,65 @@ export const seedDatabase = async () => {
       }
     }
 
+    // ==========================================
+    // 17. Seed: Day 8 Assessments & Questions
+    // ==========================================
+    const rohanUser = await client.query(`SELECT id FROM users WHERE email = 'rohan@rtdp.com'`);
+    const rohanId = rohanUser.rows[0]?.id;
+
+    if (rohanId) {
+      const assessmentCheck = await client.query(`SELECT id FROM assessments WHERE name = 'AWS Core Infrastructure Assessment'`);
+      let assessmentId: number;
+      if (assessmentCheck.rows.length === 0) {
+        const assInsert = await client.query(
+          `INSERT INTO assessments (name, type, total_questions, passing_score, created_by)
+           VALUES ('AWS Core Infrastructure Assessment', 'technical', 3, 70.00, $1) RETURNING id`,
+          [rohanId]
+        );
+        assessmentId = assInsert.rows[0].id;
+      } else {
+        assessmentId = assessmentCheck.rows[0].id;
+      }
+
+      const qCheck = await client.query(`SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = $1`, [assessmentId]);
+      if (parseInt(qCheck.rows[0].count, 10) === 0) {
+        const sampleQuestions = [
+          {
+            question_text: 'Which AWS service is used for scalable object storage?',
+            question_type: 'mcq',
+            options: JSON.stringify(['Amazon EC2', 'Amazon S3', 'Amazon RDS', 'AWS Lambda']),
+            correct_answer: 'Amazon S3',
+            marks: 1.00,
+            sequence_order: 1,
+          },
+          {
+            question_text: 'AWS Lambda functions run serverless compute jobs automatically.',
+            question_type: 'true_false',
+            options: JSON.stringify(['True', 'False']),
+            correct_answer: 'True',
+            marks: 1.00,
+            sequence_order: 2,
+          },
+          {
+            question_text: 'Which service provides a managed relational database in AWS?',
+            question_type: 'mcq',
+            options: JSON.stringify(['Amazon DynamoDB', 'Amazon Redshift', 'Amazon RDS', 'Amazon ElastiCache']),
+            correct_answer: 'Amazon RDS',
+            marks: 1.00,
+            sequence_order: 3,
+          },
+        ];
+
+        for (const q of sampleQuestions) {
+          await client.query(
+            `INSERT INTO assessment_questions (assessment_id, question_text, question_type, options, correct_answer, marks, sequence_order)
+             VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)`,
+            [assessmentId, q.question_text, q.question_type, q.options, q.correct_answer, q.marks, q.sequence_order]
+          );
+        }
+      }
+    }
+
     console.log('[Database] Connected & initialized successfully.');
 
   } catch (error: any) {

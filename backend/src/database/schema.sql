@@ -298,3 +298,68 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 
+-- =============================================
+-- DAY 8: ASSESSMENT ENGINE TABLES
+-- =============================================
+
+-- 22. Create Assessments Table
+CREATE TABLE IF NOT EXISTS assessments (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(30) NOT NULL CHECK (type IN ('knowledge', 'technical', 'interview', 'certification_prep')),
+    related_module_id INT REFERENCES training_modules(id) ON DELETE SET NULL,
+    total_questions INT NOT NULL DEFAULT 0,
+    passing_score NUMERIC(5,2) NOT NULL DEFAULT 70.00,
+    created_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 23. Create Assessment Questions Table
+CREATE TABLE IF NOT EXISTS assessment_questions (
+    id SERIAL PRIMARY KEY,
+    assessment_id INT NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    question_text TEXT NOT NULL,
+    question_type VARCHAR(20) NOT NULL CHECK (question_type IN ('mcq', 'true_false', 'short_answer')),
+    options JSONB,
+    correct_answer TEXT NOT NULL,
+    marks NUMERIC(5,2) NOT NULL DEFAULT 1.00,
+    sequence_order INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 24. Create Assessment Attempts Table
+CREATE TABLE IF NOT EXISTS assessment_attempts (
+    id SERIAL PRIMARY KEY,
+    assessment_id INT NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    score NUMERIC(5,2),
+    passed BOOLEAN,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 25. Create Assessment Answers Table
+CREATE TABLE IF NOT EXISTS assessment_answers (
+    id SERIAL PRIMARY KEY,
+    attempt_id INT NOT NULL REFERENCES assessment_attempts(id) ON DELETE CASCADE,
+    question_id INT NOT NULL REFERENCES assessment_questions(id) ON DELETE CASCADE,
+    given_answer TEXT,
+    is_correct BOOLEAN,
+    marks_obtained NUMERIC(5,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for Assessment Engine Performance
+CREATE INDEX IF NOT EXISTS idx_assessments_type ON assessments(type);
+CREATE INDEX IF NOT EXISTS idx_assessments_created_by ON assessments(created_by);
+CREATE INDEX IF NOT EXISTS idx_assessments_module ON assessments(related_module_id);
+CREATE INDEX IF NOT EXISTS idx_assessment_questions_assessment ON assessment_questions(assessment_id);
+CREATE INDEX IF NOT EXISTS idx_assessment_attempts_assessment ON assessment_attempts(assessment_id);
+CREATE INDEX IF NOT EXISTS idx_assessment_attempts_resource ON assessment_attempts(resource_id);
+CREATE INDEX IF NOT EXISTS idx_assessment_answers_attempt ON assessment_answers(attempt_id);
+CREATE INDEX IF NOT EXISTS idx_assessment_answers_question ON assessment_answers(question_id);

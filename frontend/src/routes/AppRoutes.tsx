@@ -27,6 +27,8 @@ import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManag
 import { TrainingAssignmentsPage } from '../pages/regional-lead/TrainingAssignmentsPage';
 import { TodaysActivitiesPage } from '../pages/resource/TodaysActivitiesPage';
 import { MyTrainingPlanPage } from '../pages/resource/MyTrainingPlanPage';
+import { AssessmentManagementPage } from '../pages/training-manager/AssessmentManagementPage';
+import { TakeAssessmentPage } from '../pages/resource/TakeAssessmentPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -150,7 +152,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/admin/skills"
           element={
-            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead']}>
               <SkillsCatalogPage />
             </RequireRole>
           }
@@ -158,7 +160,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/admin/role-profiles"
           element={
-            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead']}>
               <RoleProfilesPage />
             </RequireRole>
           }
@@ -166,7 +168,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/admin/role-profiles/:id"
           element={
-            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead']}>
               <RoleProfileDetailPage />
             </RequireRole>
           }
@@ -174,7 +176,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/training-manager/skills"
           element={
-            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator', 'Regional Lead']}>
               <SkillsCatalogPage />
             </RequireRole>
           }
@@ -182,7 +184,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/training-manager/role-profiles"
           element={
-            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator', 'Regional Lead']}>
               <RoleProfilesPage />
             </RequireRole>
           }
@@ -198,8 +200,16 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/training-manager/training-catalog"
           element={
-            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator', 'Regional Lead']}>
               <TrainingCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/assessments"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'Training Manager']}>
+              <AssessmentManagementPage />
             </RequireRole>
           }
         />
@@ -254,6 +264,31 @@ const ProtectedLayout: React.FC = () => {
         />
         <Route path="/todays-activities" element={<TodaysActivitiesPage />} />
         <Route path="/my-training-plan" element={<MyTrainingPlanPage />} />
+        <Route
+          path="/training-manager/assessments"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'System Administrator']}>
+              <AssessmentManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/assessments"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager']}>
+              <AssessmentManagementPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/assessments"
+          element={
+            <RequireRole allowedRoles={['Resource', 'System Administrator', 'Regional Lead']}>
+              <TakeAssessmentPage />
+            </RequireRole>
+          }
+        />
+        <Route path="/assessments" element={<TakeAssessmentPage />} />
         <Route
           path="/practice-lead/dashboard"
           element={
