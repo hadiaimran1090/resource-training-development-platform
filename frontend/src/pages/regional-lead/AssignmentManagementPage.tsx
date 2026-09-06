@@ -109,6 +109,10 @@ export const AssignmentManagementPage: React.FC = () => {
       setModalError('Start Date is required.');
       return;
     }
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      setModalError('End Date cannot be earlier than Start Date.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -464,6 +468,7 @@ export const AssignmentManagementPage: React.FC = () => {
                   <input
                     type="date"
                     value={endDate}
+                    min={startDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />

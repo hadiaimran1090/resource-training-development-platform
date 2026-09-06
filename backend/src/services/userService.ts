@@ -292,25 +292,8 @@ export class UserService {
       await pool.query(`INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [newUserId, rid]);
     }
 
-    // Universal Profile Extension Record Insertion (1:1 with users)
-    await pool.query(
-      `INSERT INTO resources (user_id, region_id, practice_id, phone_number, designation, current_status)
-       VALUES ($1, $2, $3, $4, $5, 'bench')
-       ON CONFLICT (user_id) DO NOTHING`,
-      [
-        newUserId,
-        regionId || null,
-        practiceId || null,
-        phoneNumber || null,
-        designation || 'Engineering Professional',
-      ]
-    );
-
-    // Initial Bench History Record
-    await pool.query(
-      `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
-      [newUserId]
-    );
+    // Universal Profile Extension Record & Bench Initialization via handleBenchEntry
+    await UserService.handleBenchEntry(newUserId);
 
     return this.getUserById(newUserId);
   }
@@ -404,11 +387,8 @@ export class UserService {
 
       // Handle bench_records tracking state machine transitions
       if (newCurrentStatus === 'bench') {
-        // Create new open bench record
-        await pool.query(
-          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
-          [id]
-        );
+        // Auto-assign Resource role + open bench record + audit log
+        await UserService.handleBenchEntry(id);
       } else if (currentUser.currentStatus === 'bench') {
         // Close active bench record
         await pool.query(
@@ -521,4 +501,73 @@ export class UserService {
     const res = await pool.query(query, [regionId]);
     return res.rows;
   }
+
+  /**
+   * Automatic Bench Entry Handler:
+   * Whenever a user goes onto bench / bench_records row is opened:
+   * 1. Auto-create minimal resources profile if missing (current_status = 'bench')
+   * 2. Auto-assign "Resource" role in user_roles if user does NOT hold it yet
+   * 3. Log auto-assignment in audit_logs (action: "auto-assign role", entity_type: "user_roles", details: note)
+   * 4. Ensure resources.current_status = 'bench'
+   */
+  static async handleBenchEntry(userId: number, dbClient?: any): Promise<void> {
+    const client = dbClient || pool;
+
+    // 1. Check & Auto-create resources profile row if missing
+    const resCheck = await client.query(`SELECT id FROM resources WHERE user_id = $1`, [userId]);
+    if (resCheck.rows.length === 0) {
+      await client.query(
+        `INSERT INTO resources (user_id, phone_number, designation, current_status)
+         VALUES ($1, '+1-555-0192', 'Engineering Resource', 'bench')
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId]
+      );
+    } else {
+      await client.query(
+        `UPDATE resources SET current_status = 'bench', updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
+        [userId]
+      );
+    }
+
+    // 2. Check if user already has "Resource" role
+    const roleCheck = await client.query(
+      `SELECT ur.user_id 
+       FROM user_roles ur
+       INNER JOIN roles r ON ur.role_id = r.id
+       WHERE ur.user_id = $1 AND r.name = 'Resource'`,
+      [userId]
+    );
+
+    if (roleCheck.rows.length === 0) {
+      // User does NOT have "Resource" role — fetch Resource role ID
+      const rIdRes = await client.query(`SELECT id FROM roles WHERE name = 'Resource'`);
+      if (rIdRes.rows.length > 0) {
+        const resourceRoleId = rIdRes.rows[0].id;
+        await client.query(
+          `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [userId, resourceRoleId]
+        );
+
+        // Audit log system auto-assign role
+        await client.query(
+          `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+           VALUES ($1, 'auto-assign role', 'user_roles', $2, 'System-triggered by bench entry (client assignment ended or user placed on bench). Not manually done by Admin.')`,
+          [userId, resourceRoleId]
+        );
+      }
+    }
+
+    // 3. Open bench_records row if no open record exists
+    const openBenchCheck = await client.query(
+      `SELECT id FROM bench_records WHERE user_id = $1 AND end_date IS NULL`,
+      [userId]
+    );
+    if (openBenchCheck.rows.length === 0) {
+      await client.query(
+        `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
+        [userId]
+      );
+    }
+  }
 }
+

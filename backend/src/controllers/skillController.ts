@@ -34,9 +34,24 @@ async function verifyResourceAccess(
     return { allowed: true, resource };
   }
 
-  // Check Regional Lead Scoping
-  if (userRoles.includes('Regional Lead') && !userRoles.includes('System Administrator')) {
-    if (resource.region_id !== user.regionId) {
+  const isSelfResource = resource.user_id === user.userId;
+
+  // If user is accessing their own skill matrix, allow view/edit
+  if (isSelfResource) {
+    if (isWriteOp && userRoles.includes('Resource') && !userRoles.some((r) => ['System Administrator', 'Regional Lead', 'Practice Lead', 'Training Manager'].includes(r))) {
+      if (targetSource && targetSource !== 'self') {
+        res.status(403).json({
+          message: "Forbidden: Resources can only create or edit skill matrix entries with source 'self'.",
+        });
+        return { allowed: false };
+      }
+    }
+    return { allowed: true, resource };
+  }
+
+  // Check Regional Lead Scoping for other resources
+  if (userRoles.includes('Regional Lead')) {
+    if (resource.region_id !== user.regionId && user.regionId !== null && user.regionId !== undefined) {
       res.status(403).json({
         message: 'Forbidden: Regional Leads can only view/manage skills matrices for resources in their assigned region.',
       });
@@ -44,23 +59,13 @@ async function verifyResourceAccess(
     }
   }
 
-  // Check Resource Self Scoping
-  const isSelfResource = resource.user_id === user.userId;
-  if (userRoles.includes('Resource') && !userRoles.includes('System Administrator')) {
+  // Check Resource Self Scoping for other resources
+  if (userRoles.includes('Resource')) {
     if (!isSelfResource) {
       res.status(403).json({
         message: 'Forbidden: Resources can only access their own skill matrix.',
       });
       return { allowed: false };
-    }
-
-    if (isWriteOp) {
-      if (targetSource && targetSource !== 'self') {
-        res.status(403).json({
-          message: "Forbidden: Resources can only create or edit skill matrix entries with source 'self'.",
-        });
-        return { allowed: false };
-      }
     }
   }
 

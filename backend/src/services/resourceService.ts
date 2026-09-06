@@ -24,6 +24,8 @@ export class ResourceService {
              lead.name as regional_lead_name
       FROM resources r
       INNER JOIN users u ON r.user_id = u.id
+      INNER JOIN user_roles ur ON u.id = ur.user_id
+      INNER JOIN roles rl ON ur.role_id = rl.id AND rl.name = 'Resource'
       LEFT JOIN regions reg ON r.region_id = reg.id
       LEFT JOIN practices prac ON r.practice_id = prac.id
       LEFT JOIN users lead ON r.regional_lead_id = lead.id

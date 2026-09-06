@@ -283,3 +283,18 @@ CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assi
 CREATE INDEX IF NOT EXISTS idx_daily_activities_assignment_id ON daily_activities(training_assignment_id);
 CREATE INDEX IF NOT EXISTS idx_daily_activities_day_number ON daily_activities(day_number);
 
+-- 21. Create Audit Logs Table
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id INT,
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+

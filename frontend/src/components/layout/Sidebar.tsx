@@ -79,7 +79,7 @@ const resourceSidebar: NavSection[] = [
   {
     title: 'Career & Profile',
     items: [
-      { name: 'My Profile', path: '/resource/profile', icon: User },
+      { name: 'My Profile', path: '/profile', icon: User },
       { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'Certifications', path: '/resource/dashboard#certifications', icon: CheckCircle },
       { name: 'Interview History', path: '/resource/dashboard#interview-history', icon: History },
@@ -94,22 +94,25 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Regional Lead Dashboard', path: '/regional-lead/dashboard', icon: LayoutDashboard },
-      { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
-      { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
-      { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
-      { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
-      { name: 'My Skills', path: '/skills', icon: Award },
-      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
     title: 'Approvals & Tracking',
     items: [
-      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
-      { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
       { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
+      { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
+      { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
+      { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
+      { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
       { name: 'Assessments Review', path: '/regional-lead/dashboard#assessments-review', icon: FileText },
       { name: 'Interviews', path: '/regional-lead/dashboard#interviews', icon: Video },
+    ],
+  },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Profile', path: '/profile', icon: User },
+      { name: 'My Skills', path: '/skills', icon: Award },
     ],
   },
   {
@@ -205,7 +208,6 @@ const trainingManagerSidebar: NavSection[] = [
   {
     title: 'Requirements & Reports',
     items: [
-      { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Effectiveness Reports', path: '/training-manager/dashboard#reports', icon: LineChart },
     ],
   },
@@ -256,6 +258,20 @@ const managementSidebar: NavSection[] = [
   },
 ];
 
+// Preferred Section Display Order for Multi-Role Unified Sidebar
+const PREFERRED_SECTION_ORDER = [
+  'Overview',
+  'Learning & Development',
+  'Approvals & Tracking',
+  'User & Access Control',
+  'Catalog & Profiles',
+  'System Control',
+  'Mentorship Activities',
+  'Executive Insights',
+  'Analytics & Programs',
+  'Career & Profile',
+  'Alerts & System',
+];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const location = useLocation();
@@ -275,11 +291,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
     'Management': managementSidebar,
   };
 
-  // Determine aggregated navSections for multi-role users
+  // Determine aggregated navSections for multi-role users with strict name & path deduplication
   let navSections: NavSection[] = [];
 
   if (userRoles.length > 0) {
     const sectionMap = new Map<string, NavItem[]>();
+    const seenPaths = new Set<string>();
+    const seenNames = new Set<string>();
 
     userRoles.forEach((role) => {
       const config = roleSidebarMap[role];
@@ -287,19 +305,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         config.forEach((section) => {
           const existingItems = sectionMap.get(section.title) || [];
           section.items.forEach((item) => {
-            if (!existingItems.some((existing) => existing.path === item.path)) {
+            if (!seenPaths.has(item.path) && !seenNames.has(item.name)) {
+              seenPaths.add(item.path);
+              seenNames.add(item.name);
               existingItems.push(item);
             }
           });
-          sectionMap.set(section.title, existingItems);
+          if (existingItems.length > 0) {
+            sectionMap.set(section.title, existingItems);
+          }
         });
       }
     });
 
-    navSections = Array.from(sectionMap.entries()).map(([title, items]) => ({
-      title,
-      items,
-    }));
+    navSections = Array.from(sectionMap.entries())
+      .filter(([_, items]) => items.length > 0)
+      .map(([title, items]) => ({
+        title,
+        items,
+      }));
+
+    // Sort sections based on PREFERRED_SECTION_ORDER
+    navSections.sort((a, b) => {
+      const indexA = PREFERRED_SECTION_ORDER.indexOf(a.title);
+      const indexB = PREFERRED_SECTION_ORDER.indexOf(b.title);
+      const posA = indexA !== -1 ? indexA : 999;
+      const posB = indexB !== -1 ? indexB : 999;
+      return posA - posB;
+    });
   }
 
   // Fallback to route-based resolution if roles not loaded

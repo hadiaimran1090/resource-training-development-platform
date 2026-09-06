@@ -1,5 +1,6 @@
 import { pool } from '../config/db.js';
 import { AuthPayload } from '../types/auth.js';
+import { UserService } from './userService.js';
 
 export interface AssignmentData {
   resource_id: number;
@@ -117,6 +118,10 @@ export class AssignmentService {
       status = 'active',
     } = data;
 
+    if (end_date && new Date(end_date) < new Date(start_date)) {
+      throw new Error('End Date cannot be earlier than Start Date.');
+    }
+
     // Fetch resource and region info
     const resQuery = await pool.query(
       `SELECT r.id, r.user_id, COALESCE(u.region_id, r.region_id) as region_id
@@ -213,6 +218,13 @@ export class AssignmentService {
       }
     }
 
+    const targetStartDate = data.start_date !== undefined ? data.start_date : existingAsg.start_date;
+    const targetEndDate = data.end_date !== undefined ? data.end_date : existingAsg.end_date;
+
+    if (targetEndDate && targetStartDate && new Date(targetEndDate) < new Date(targetStartDate)) {
+      throw new Error('End Date cannot be earlier than Start Date.');
+    }
+
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -264,15 +276,7 @@ export class AssignmentService {
         [existingAsg.resource_id]
       );
       if (activeRes.rows.length === 0) {
-        await pool.query(
-          `UPDATE resources SET current_status = 'bench', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-          [existingAsg.resource_id]
-        );
-        // Create new open bench history record
-        await pool.query(
-          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
-          [existingAsg.user_id]
-        );
+        await UserService.handleBenchEntry(existingAsg.user_id);
       }
     } else if (targetStatus === 'active') {
       await pool.query(
@@ -332,14 +336,7 @@ export class AssignmentService {
         [existingAsg.resource_id]
       );
       if (activeRes.rows.length === 0) {
-        await pool.query(
-          `UPDATE resources SET current_status = 'bench', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-          [existingAsg.resource_id]
-        );
-        await pool.query(
-          `INSERT INTO bench_records (user_id, start_date) VALUES ($1, CURRENT_DATE)`,
-          [existingAsg.user_id]
-        );
+        await UserService.handleBenchEntry(existingAsg.user_id);
       }
     }
 

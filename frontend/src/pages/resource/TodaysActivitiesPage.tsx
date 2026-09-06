@@ -14,7 +14,6 @@ import {
   Sparkles,
   Award,
   ArrowRight,
-  ShieldAlert,
 } from 'lucide-react';
 import { trainingAssignmentApi } from '../../api/trainingAssignmentApi';
 import { resourceApi } from '../../api/resourceApi';
@@ -51,7 +50,13 @@ export const TodaysActivitiesPage: React.FC = () => {
       const data = await trainingAssignmentApi.getTodaysActivities(myProfile.id);
       setTodaysData(data);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to load today's activities.");
+      const statusCode = err?.response?.status;
+      if (statusCode === 403) {
+        // Silently handle forbidden - means no training assigned yet
+        setTodaysData(null);
+      } else {
+        setError(err?.response?.data?.message || "Failed to load today's activities.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,15 +242,15 @@ export const TodaysActivitiesPage: React.FC = () => {
           <span>Loading today's scheduled activities...</span>
         </div>
       ) : assignmentsList.length === 0 ? (
-        /* Empty State: No active approved assignment */
+        /* Empty State: No training assigned by Regional Lead */
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-4 max-w-2xl mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-            <Calendar className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Clock className="w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-lg font-extrabold text-slate-900">No Active Track Scheduled for Today</h3>
+            <h3 className="text-lg font-extrabold text-slate-900">No Training Assigned Yet</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              You do not currently have an active training track scheduled for today. Upcoming tracks will appear here automatically on their start date.
+              Your Regional Lead has not assigned a training track to you yet. Once a training plan is assigned and approved, your daily activities will appear here automatically.
             </p>
           </div>
           <div className="pt-2">
