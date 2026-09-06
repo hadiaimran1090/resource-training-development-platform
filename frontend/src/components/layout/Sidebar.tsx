@@ -17,7 +17,6 @@ import {
   Users,
   CheckSquare,
   BookOpen,
-  FileText,
   Video,
   AlertTriangle,
   Bell,
