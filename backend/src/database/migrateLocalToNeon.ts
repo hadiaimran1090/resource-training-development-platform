@@ -668,21 +668,10 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${daRes.rows.length} daily_activities.`);
     await neonClient.query(`SELECT setval('daily_activities_id_seq', (SELECT COALESCE(MAX(id), 1) FROM daily_activities))`);
 
-    // 19. Refresh Tokens
-    const rtRes = await localClient.query(
-      `SELECT rt.* FROM refresh_tokens rt
-       INNER JOIN users u ON rt.user_id = u.id
-       ORDER BY rt.id`
-    );
-    for (const rt of rtRes.rows) {
-      await neonClient.query(
-        `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, is_revoked, replaced_by_token, user_agent, ip_address, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [rt.id, rt.user_id, rt.token_hash, rt.expires_at, rt.is_revoked, rt.replaced_by_token, rt.user_agent, rt.ip_address, rt.created_at]
-      );
-    }
-    console.log(`Migrated ${rtRes.rows.length} refresh_tokens.`);
-    await neonClient.query(`SELECT setval('refresh_tokens_id_seq', (SELECT COALESCE(MAX(id), 1) FROM refresh_tokens))`);
+    // 19. Refresh Tokens — SKIPPED (stale session tokens are not needed on prod)
+    console.log('Skipping refresh_tokens migration (session data not needed on deployment).');
+    await neonClient.query(`TRUNCATE TABLE refresh_tokens CASCADE`);
+    await neonClient.query(`SELECT setval('refresh_tokens_id_seq', 1, false)`);
 
     // 20. Audit Logs
     const alRes = await localClient.query(`SELECT * FROM audit_logs ORDER BY id`);
