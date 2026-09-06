@@ -19,7 +19,6 @@ import { trainingAssignmentApi } from '../../api/trainingAssignmentApi';
 import { resourceApi } from '../../api/resourceApi';
 import type { ResourceProfile } from '../../api/resourceApi';
 import type {
-  TrainingAssignment,
   DailyActivity,
   TodaysActivitiesResponse,
 } from '../../types/trainingAssignment';

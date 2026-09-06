@@ -6,15 +6,11 @@ import {
   XCircle,
   Clock,
   Search,
-  Filter,
   Eye,
-  Calendar,
   User,
   ShieldAlert,
   Loader2,
   AlertCircle,
-  Sparkles,
-  CheckSquare,
   FileCheck,
   Code,
   Video,
@@ -28,7 +24,7 @@ import { trainingCatalogApi } from '../../api/trainingCatalogApi';
 import { resourceApi } from '../../api/resourceApi';
 import type { ResourceProfile } from '../../api/resourceApi';
 import { useAuth } from '../../context/AuthContext';
-import type { TrainingAssignment, DailyActivity } from '../../types/trainingAssignment';
+import type { TrainingAssignment } from '../../types/trainingAssignment';
 import type { TrainingTrack } from '../../types/trainingCatalog';
 import { AssignTrainingModal } from '../../components/training/AssignTrainingModal';
 

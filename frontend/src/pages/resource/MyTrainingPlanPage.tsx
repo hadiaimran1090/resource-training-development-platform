@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Route,
   CheckCircle2,
-  Clock,
   BookOpen,
   Code,
   FileCheck,
@@ -11,18 +10,13 @@ import {
   AlertCircle,
   Loader2,
   Calendar,
-  Sparkles,
-  ArrowLeft,
 } from 'lucide-react';
 import { trainingAssignmentApi } from '../../api/trainingAssignmentApi';
-import { resourceApi } from '../../api/resourceApi';
-import type { ResourceProfile } from '../../api/resourceApi';
 import type { TrainingAssignment, DailyActivity } from '../../types/trainingAssignment';
 import { Link } from 'react-router-dom';
 
 export const MyTrainingPlanPage: React.FC = () => {
   const [assignments, setAssignments] = useState<TrainingAssignment[]>([]);
-  const [profile, setProfile] = useState<ResourceProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,9 +30,6 @@ export const MyTrainingPlanPage: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      const myProfile = await resourceApi.getMyProfile();
-      setProfile(myProfile);
 
       const assignmentsList = await trainingAssignmentApi.getAssignments();
       if (assignmentsList.length > 0) {
