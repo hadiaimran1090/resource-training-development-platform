@@ -179,7 +179,7 @@ const adminSidebar: NavSection[] = [
     title: 'System Control',
     items: [
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
-      { name: 'Audit Log', path: '/admin/dashboard#audit-log', icon: History },
+      { name: 'Audit Log', path: '/admin/audit-log', icon: History },
     ],
   },
 ];

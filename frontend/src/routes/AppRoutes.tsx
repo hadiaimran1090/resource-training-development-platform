@@ -19,6 +19,7 @@ import { ResourceManagementPage } from '../pages/admin/ResourceManagementPage';
 import { SkillsCatalogPage } from '../pages/admin/SkillsCatalogPage';
 import { RoleProfilesPage } from '../pages/admin/RoleProfilesPage';
 import { RoleProfileDetailPage } from '../pages/admin/RoleProfileDetailPage';
+import { AuditLogPage } from '../pages/admin/AuditLogPage';
 import { TrainingCatalogPage } from '../pages/training-manager/TrainingCatalogPage';
 import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
 import { MySkillsPage } from '../pages/resource/MySkillsPage';
@@ -95,6 +96,14 @@ const ProtectedLayout: React.FC = () => {
           element={
             <RequireRole allowedRoles={['System Administrator']}>
               <AdminDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/audit-log"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Management', 'Regional Lead', 'Practice Lead']}>
+              <AuditLogPage />
             </RequireRole>
           }
         />
