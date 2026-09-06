@@ -10,9 +10,11 @@ import assignmentRoutes from './routes/assignmentRoutes.js';
 import skillRoutes from './routes/skillRoutes.js';
 import roleProfileRoutes from './routes/roleProfileRoutes.js';
 import trainingCatalogRoutes from './routes/trainingCatalogRoutes.js';
+import trainingAssignmentRoutes from './routes/trainingAssignmentRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
+
 
 const productionFrontendOrigin = 'https://resource-training-development-platf.vercel.app';
 const configuredFrontendOrigins =
@@ -74,6 +76,7 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/role-profiles', roleProfileRoutes);
 app.use('/api', trainingCatalogRoutes);
+app.use('/api', trainingAssignmentRoutes);
 
 // Error Handler Middleware
 app.use(errorHandler);

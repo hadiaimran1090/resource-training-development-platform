@@ -15,28 +15,19 @@ export interface ResourceData {
 export class ResourceService {
   static async getAllResources() {
     const query = `
-      SELECT r.id, r.user_id, r.phone_number, r.designation, r.experience_years, r.current_status, r.created_at, r.updated_at,
+      SELECT DISTINCT ON (r.id)
+             r.id, r.user_id, r.phone_number, r.designation, r.experience_years, r.current_status, r.created_at, r.updated_at,
              u.name as user_name, u.email as user_email, u.employee_id, u.profile_image_url, u.status as account_status,
              reg.id as region_id, reg.name as region_name, reg.code as region_code,
              prac.id as practice_id, prac.name as practice_name,
-             COALESCE(lead.id, reg_lead.id) as regional_lead_id,
-             COALESCE(lead.name, reg_lead.name) as regional_lead_name
+             lead.id as regional_lead_id,
+             lead.name as regional_lead_name
       FROM resources r
       INNER JOIN users u ON r.user_id = u.id
-      INNER JOIN user_roles ur ON u.id = ur.user_id
-      INNER JOIN roles ro ON ur.role_id = ro.id
       LEFT JOIN regions reg ON r.region_id = reg.id
       LEFT JOIN practices prac ON r.practice_id = prac.id
       LEFT JOIN users lead ON r.regional_lead_id = lead.id
-      LEFT JOIN (
-        SELECT DISTINCT u_lead.id, u_lead.name, u_lead.region_id
-        FROM users u_lead
-        INNER JOIN user_roles ur_lead ON u_lead.id = ur_lead.user_id
-        INNER JOIN roles r_lead ON ur_lead.role_id = r_lead.id
-        WHERE r_lead.name = 'Regional Lead'
-      ) reg_lead ON reg.id = reg_lead.region_id
-      WHERE ro.name = 'Resource'
-      ORDER BY u.name ASC
+      ORDER BY r.id ASC, u.name ASC
     `;
     const result = await pool.query(query);
     return result.rows;

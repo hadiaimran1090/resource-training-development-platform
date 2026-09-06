@@ -248,3 +248,38 @@ CREATE TABLE IF NOT EXISTS training_modules (
 CREATE INDEX IF NOT EXISTS idx_training_tracks_target_role ON training_tracks(target_role_profile_id);
 CREATE INDEX IF NOT EXISTS idx_training_programs_track_id ON training_programs(track_id);
 CREATE INDEX IF NOT EXISTS idx_training_modules_program_id ON training_modules(program_id);
+
+-- 19. Create Training Assignments Table
+CREATE TABLE IF NOT EXISTS training_assignments (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    track_id INT NOT NULL REFERENCES training_tracks(id) ON DELETE RESTRICT,
+    assigned_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    start_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed')),
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+    approved_by INT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 20. Create Daily Activities Table
+CREATE TABLE IF NOT EXISTS daily_activities (
+    id SERIAL PRIMARY KEY,
+    training_assignment_id INT NOT NULL REFERENCES training_assignments(id) ON DELETE CASCADE,
+    day_number INT NOT NULL,
+    activity_type VARCHAR(30) NOT NULL CHECK (activity_type IN ('training', 'assessment', 'coding', 'reading', 'poc', 'mock_interview', 'mentor_session', 'documentation')),
+    description VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+    completed_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for Training Assignments and Daily Activities
+CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
+CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
+CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
+CREATE INDEX IF NOT EXISTS idx_daily_activities_assignment_id ON daily_activities(training_assignment_id);
+CREATE INDEX IF NOT EXISTS idx_daily_activities_day_number ON daily_activities(day_number);
+

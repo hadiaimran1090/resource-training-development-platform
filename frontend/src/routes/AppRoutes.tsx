@@ -23,6 +23,9 @@ import { TrainingCatalogPage } from '../pages/training-manager/TrainingCatalogPa
 import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
 import { MySkillsPage } from '../pages/resource/MySkillsPage';
 import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManagementPage';
+import { TrainingAssignmentsPage } from '../pages/regional-lead/TrainingAssignmentsPage';
+import { TodaysActivitiesPage } from '../pages/resource/TodaysActivitiesPage';
+import { MyTrainingPlanPage } from '../pages/resource/MyTrainingPlanPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -208,6 +211,40 @@ const ProtectedLayout: React.FC = () => {
             </RequireRole>
           }
         />
+        <Route
+          path="/regional-lead/training-assignments"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'System Administrator', 'Practice Lead', 'Training Manager']}>
+              <TrainingAssignmentsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/training-assignments"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead', 'Practice Lead']}>
+              <TrainingAssignmentsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/todays-activities"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'System Administrator']}>
+              <TodaysActivitiesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/my-training-plan"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'System Administrator']}>
+              <MyTrainingPlanPage />
+            </RequireRole>
+          }
+        />
+        <Route path="/todays-activities" element={<TodaysActivitiesPage />} />
+        <Route path="/my-training-plan" element={<MyTrainingPlanPage />} />
         <Route
           path="/practice-lead/dashboard"
           element={

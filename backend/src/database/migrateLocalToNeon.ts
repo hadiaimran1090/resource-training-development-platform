@@ -205,15 +205,44 @@ export const migrateLocalToNeon = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE INDEX IF NOT EXISTS idx_training_tracks_target_role ON training_tracks(target_role_profile_id);
-      CREATE INDEX IF NOT EXISTS idx_training_programs_track_id ON training_programs(track_id);
-      CREATE INDEX IF NOT EXISTS idx_training_modules_program_id ON training_modules(program_id);
+      CREATE TABLE IF NOT EXISTS training_assignments (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        track_id INT NOT NULL REFERENCES training_tracks(id) ON DELETE RESTRICT,
+        assigned_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        start_date DATE NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'completed')),
+        approval_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+        approved_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS daily_activities (
+        id SERIAL PRIMARY KEY,
+        training_assignment_id INT NOT NULL REFERENCES training_assignments(id) ON DELETE CASCADE,
+        day_number INT NOT NULL,
+        activity_type VARCHAR(30) NOT NULL CHECK (activity_type IN ('training', 'assessment', 'coding', 'reading', 'poc', 'mock_interview', 'mentor_session', 'documentation')),
+        description VARCHAR(255) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+        completed_date TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
+      CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
+      CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
+      CREATE INDEX IF NOT EXISTS idx_daily_activities_assignment_id ON daily_activities(training_assignment_id);
+      CREATE INDEX IF NOT EXISTS idx_daily_activities_day_number ON daily_activities(day_number);
     `);
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        daily_activities,
+        training_assignments,
         training_modules,
         training_programs,
         training_tracks,
@@ -454,8 +483,32 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${tmRes.rows.length} training_modules.`);
     await neonClient.query(`SELECT setval('training_modules_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_modules))`);
 
+    // 17. Training Assignments (Day 7)
+    const taRes = await localClient.query(`SELECT * FROM training_assignments ORDER BY id`);
+    for (const ta of taRes.rows) {
+      await neonClient.query(
+        `INSERT INTO training_assignments (id, resource_id, track_id, assigned_by, start_date, status, approval_status, approved_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [ta.id, ta.resource_id, ta.track_id, ta.assigned_by, ta.start_date, ta.status, ta.approval_status, ta.approved_by, ta.created_at, ta.updated_at]
+      );
+    }
+    console.log(`Migrated ${taRes.rows.length} training_assignments.`);
+    await neonClient.query(`SELECT setval('training_assignments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM training_assignments))`);
+
+    // 18. Daily Activities (Day 7)
+    const daRes = await localClient.query(`SELECT * FROM daily_activities ORDER BY id`);
+    for (const da of daRes.rows) {
+      await neonClient.query(
+        `INSERT INTO daily_activities (id, training_assignment_id, day_number, activity_type, description, status, completed_date, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [da.id, da.training_assignment_id, da.day_number, da.activity_type, da.description, da.status, da.completed_date, da.created_at, da.updated_at]
+      );
+    }
+    console.log(`Migrated ${daRes.rows.length} daily_activities.`);
+    await neonClient.query(`SELECT setval('daily_activities_id_seq', (SELECT COALESCE(MAX(id), 1) FROM daily_activities))`);
+
     console.log('\n======================================================');
-    console.log(' SUCCESS: All local database data & Day 6 Training Catalog fully migrated to Neon Cloud PostgreSQL!');
+    console.log(' SUCCESS: All local database data & Day 7 Training Assignments fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
     console.error('Migration error:', error?.message || error);

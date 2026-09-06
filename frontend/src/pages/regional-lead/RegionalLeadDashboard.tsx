@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatCard } from '../../components/ui/StatCard';
 import {
@@ -11,7 +12,9 @@ import {
   FileText,
   Check,
   X,
-  ChevronDown
+  ChevronDown,
+  BookOpen,
+  ArrowRight,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -45,10 +48,20 @@ const benchCompData = [
 export const RegionalLeadDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        onExport={() => alert('Exporting Regional Ops Report...')}
-      />
+      {/* Header with Quick Action */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <PageHeader
+          onExport={() => alert('Exporting Regional Ops Report...')}
+        />
+        <Link
+          to="/regional-lead/training-assignments"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 shrink-0 mb-4 md:mb-0"
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Manage Training Assignments</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
       {/* KPI Cards (6 columns) */}
       <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -338,8 +351,19 @@ export const RegionalLeadDashboard: React.FC = () => {
 
           {/* Training Tracks Blue Card */}
           <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl p-5 shadow-sm space-y-3">
-            <h2 className="text-sm font-bold">Training Tracks</h2>
-            <p className="text-[11px] text-blue-100">Quarterly progress</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold">Training Tracks</h2>
+                <p className="text-[11px] text-blue-100">Quarterly progress</p>
+              </div>
+              <Link
+                to="/regional-lead/training-assignments"
+                className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/20 transition-all flex items-center gap-1 shrink-0"
+              >
+                <span>Assignments</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
 
             <div className="space-y-3 pt-2">
               <div>

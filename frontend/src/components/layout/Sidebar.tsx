@@ -70,8 +70,8 @@ const resourceSidebar: NavSection[] = [
     title: 'Learning & Development',
     items: [
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
-      { name: 'My Training Plan', path: '/resource/dashboard#training-plan', icon: Route },
-      { name: "Today's Activities", path: '/resource/dashboard#activities', icon: Calendar },
+      { name: 'My Training Plan', path: '/resource/my-training-plan', icon: Route },
+      { name: "Today's Activities", path: '/resource/todays-activities', icon: Calendar },
       { name: 'Assessments', path: '/resource/dashboard#assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/resource/dashboard#challenges', icon: Code },
     ],
@@ -94,6 +94,7 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Regional Lead Dashboard', path: '/regional-lead/dashboard', icon: LayoutDashboard },
+      { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
       { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
@@ -106,7 +107,7 @@ const regionalLeadSidebar: NavSection[] = [
     items: [
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
-      { name: 'Training Assignments', path: '/regional-lead/dashboard#training', icon: BookOpen },
+      { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
       { name: 'Assessments Review', path: '/regional-lead/dashboard#assessments-review', icon: FileText },
       { name: 'Interviews', path: '/regional-lead/dashboard#interviews', icon: Video },
     ],
