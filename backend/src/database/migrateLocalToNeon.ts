@@ -115,6 +115,7 @@ export const migrateLocalToNeon = async () => {
       );
 
       ALTER TABLE resources ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+      ALTER TABLE resources ADD COLUMN IF NOT EXISTS mentor_id INT REFERENCES users(id) ON DELETE SET NULL;
 
       CREATE TABLE IF NOT EXISTS bench_records (
         id SERIAL PRIMARY KEY,
@@ -351,6 +352,52 @@ export const migrateLocalToNeon = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS certifications (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        issuing_body VARCHAR(255),
+        date_earned DATE NOT NULL,
+        certificate_url VARCHAR(500) NOT NULL,
+        verification_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+        verified_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS interviews (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        client_name VARCHAR(255),
+        role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+        interview_type VARCHAR(30) NOT NULL CHECK (interview_type IN ('client', 'mock', 'technical', 'behavioral')),
+        interview_date TIMESTAMP NOT NULL,
+        result VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (result IN ('selected', 'rejected', 'pending')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS interview_feedback (
+        id SERIAL PRIMARY KEY,
+        interview_id INT NOT NULL UNIQUE REFERENCES interviews(id) ON DELETE CASCADE,
+        technical_gaps TEXT,
+        communication_gaps TEXT,
+        recommendations TEXT,
+        overall_rating NUMERIC(2,1) CHECK (overall_rating IS NULL OR (overall_rating >= 0.0 AND overall_rating <= 5.0)),
+        given_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS mentoring_sessions (
+        id SERIAL PRIMARY KEY,
+        mentor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        session_date TIMESTAMP NOT NULL,
+        session_type VARCHAR(30) NOT NULL CHECK (session_type IN ('review', 'mock_interview', 'feedback')),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
@@ -370,6 +417,15 @@ export const migrateLocalToNeon = async () => {
       CREATE INDEX IF NOT EXISTS idx_coding_submissions_challenge ON coding_submissions(challenge_id);
       CREATE INDEX IF NOT EXISTS idx_coding_submissions_resource ON coding_submissions(resource_id);
       CREATE INDEX IF NOT EXISTS idx_coding_submissions_status ON coding_submissions(status);
+      CREATE INDEX IF NOT EXISTS idx_certifications_resource ON certifications(resource_id);
+      CREATE INDEX IF NOT EXISTS idx_certifications_status ON certifications(verification_status);
+      CREATE INDEX IF NOT EXISTS idx_interviews_resource ON interviews(resource_id);
+      CREATE INDEX IF NOT EXISTS idx_interviews_role_profile ON interviews(role_profile_id);
+      CREATE INDEX IF NOT EXISTS idx_interviews_result ON interviews(result);
+      CREATE INDEX IF NOT EXISTS idx_interview_feedback_interview ON interview_feedback(interview_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_feedback_given_by ON interview_feedback(given_by);
+      CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_mentor ON mentoring_sessions(mentor_id);
+      CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_resource ON mentoring_sessions(resource_id);
     `);
 
     // Keep the clean sync atomic. A failed import must not leave Neon empty or
@@ -381,6 +437,10 @@ export const migrateLocalToNeon = async () => {
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        mentoring_sessions,
+        interview_feedback,
+        interviews,
+        certifications,
         coding_submissions,
         coding_challenges,
         notifications,
@@ -538,15 +598,17 @@ export const migrateLocalToNeon = async () => {
       const regId = r.region_id && validRegionIds.has(r.region_id) ? r.region_id : null;
       const pracId = r.practice_id && validPracticeIds.has(r.practice_id) ? r.practice_id : null;
       const regLeadId = r.regional_lead_id && validUserIds.has(r.regional_lead_id) ? r.regional_lead_id : null;
+      const mentorId = r.mentor_id && validUserIds.has(r.mentor_id) ? r.mentor_id : null;
       await neonClient.query(
-        `INSERT INTO resources (id, user_id, region_id, practice_id, regional_lead_id, phone_number, designation, experience_years, current_status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `INSERT INTO resources (id, user_id, region_id, practice_id, regional_lead_id, mentor_id, phone_number, designation, experience_years, current_status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           r.id,
           r.user_id,
           regId,
           pracId,
           regLeadId,
+          mentorId,
           r.phone_number || null,
           r.designation,
           r.experience_years,
@@ -896,11 +958,103 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${csRes.rows.length} coding_submissions.`);
     await neonClient.query(`SELECT setval('coding_submissions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM coding_submissions))`);
 
+    // 29. Certifications
+    const certsRes = await localClient.query(`SELECT * FROM certifications ORDER BY id`);
+    for (const cert of certsRes.rows) {
+      const verifiedBy = cert.verified_by && validUserIds.has(cert.verified_by) ? cert.verified_by : null;
+      await neonClient.query(
+        `INSERT INTO certifications (id, resource_id, name, issuing_body, date_earned, certificate_url, verification_status, verified_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          cert.id,
+          cert.resource_id,
+          cert.name,
+          cert.issuing_body,
+          cert.date_earned,
+          cert.certificate_url,
+          cert.verification_status,
+          verifiedBy,
+          cert.created_at,
+          cert.updated_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${certsRes.rows.length} certifications.`);
+    await neonClient.query(`SELECT setval('certifications_id_seq', (SELECT COALESCE(MAX(id), 1) FROM certifications))`);
+
+    // 30. Interviews
+    const intRes = await localClient.query(`SELECT * FROM interviews ORDER BY id`);
+    for (const item of intRes.rows) {
+      const rpId = item.role_profile_id && validRpIds.has(item.role_profile_id) ? item.role_profile_id : null;
+      await neonClient.query(
+        `INSERT INTO interviews (id, resource_id, client_name, role_profile_id, interview_type, interview_date, result, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          item.id,
+          item.resource_id,
+          item.client_name,
+          rpId,
+          item.interview_type,
+          item.interview_date,
+          item.result,
+          item.created_at,
+          item.updated_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${intRes.rows.length} interviews.`);
+    await neonClient.query(`SELECT setval('interviews_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interviews))`);
+
+    // 31. Interview Feedback
+    const fbRes = await localClient.query(`SELECT * FROM interview_feedback ORDER BY id`);
+    for (const fb of fbRes.rows) {
+      const givenBy = fb.given_by && validUserIds.has(fb.given_by) ? fb.given_by : null;
+      if (!givenBy) continue;
+      await neonClient.query(
+        `INSERT INTO interview_feedback (id, interview_id, technical_gaps, communication_gaps, recommendations, overall_rating, given_by, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          fb.id,
+          fb.interview_id,
+          fb.technical_gaps,
+          fb.communication_gaps,
+          fb.recommendations,
+          fb.overall_rating,
+          givenBy,
+          fb.created_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${fbRes.rows.length} interview_feedback.`);
+    await neonClient.query(`SELECT setval('interview_feedback_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_feedback))`);
+
+    // 32. Mentoring Sessions
+    const msRes = await localClient.query(`SELECT * FROM mentoring_sessions ORDER BY id`);
+    for (const ms of msRes.rows) {
+      const mentorId = ms.mentor_id && validUserIds.has(ms.mentor_id) ? ms.mentor_id : null;
+      if (!mentorId) continue;
+      await neonClient.query(
+        `INSERT INTO mentoring_sessions (id, mentor_id, resource_id, session_date, session_type, notes, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          ms.id,
+          mentorId,
+          ms.resource_id,
+          ms.session_date,
+          ms.session_type,
+          ms.notes,
+          ms.created_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${msRes.rows.length} mentoring_sessions.`);
+    await neonClient.query(`SELECT setval('mentoring_sessions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM mentoring_sessions))`);
+
     await neonClient.query('COMMIT');
     neonTransactionStarted = false;
 
     console.log('\n======================================================');
-    console.log(' SUCCESS: All local database data & Day 9 Coding Challenges data fully migrated to Neon Cloud PostgreSQL!');
+    console.log(' SUCCESS: All local database data & Day 10 Certifications/Interviews/Mentoring data fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
     if (neonClient && neonTransactionStarted) {

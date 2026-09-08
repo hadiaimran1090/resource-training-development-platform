@@ -79,7 +79,7 @@ const resourceSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/profile', icon: User },
-      { name: 'Certifications', path: '/resource/certifications', icon: CheckCircle },
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
       { name: 'Interview History', path: '/resource/interview-history', icon: History },
       { name: 'My Readiness Score', path: '/resource/dashboard#readiness', icon: Gauge },
     ],
