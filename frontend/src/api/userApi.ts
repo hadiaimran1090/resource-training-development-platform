@@ -18,6 +18,7 @@ export interface BenchRecord {
 
 export interface UserDetail {
   id: number;
+  resourceId?: number | null;
   name: string;
   email: string;
   employeeId: string;

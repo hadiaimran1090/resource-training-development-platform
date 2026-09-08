@@ -401,11 +401,17 @@ export const UserDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Combined Skills Matrix Section (My Skills + Target Role Required Skills) */}
-      <SkillsMatrixSection
-        resourceId={user.id}
-        resourceUserId={user.id}
-      />
+      {/* Skills belong to the resource profile, whose ID can differ from the user ID. */}
+      {user.resourceId ? (
+        <SkillsMatrixSection
+          resourceId={user.resourceId}
+          resourceUserId={user.id}
+        />
+      ) : (
+        <div className="mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs font-medium">
+          This user does not have a resource profile, so a skills matrix cannot be shown.
+        </div>
+      )}
     </div>
   );
 };

@@ -72,7 +72,7 @@ const resourceSidebar: NavSection[] = [
       { name: 'My Training Plan', path: '/resource/my-training-plan', icon: Route },
       { name: "Today's Activities", path: '/resource/todays-activities', icon: Calendar },
       { name: 'Assessments', path: '/resource/assessments', icon: FileCheck },
-      { name: 'Coding Challenges', path: '/resource/dashboard#challenges', icon: Code },
+      { name: 'Coding Challenges', path: '/resource/coding-challenges', icon: Code },
     ],
   },
   {
@@ -111,6 +111,7 @@ const regionalLeadSidebar: NavSection[] = [
       { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Assessments', path: '/regional-lead/assessments', icon: FileCheck },
+      { name: 'Coding Challenges', path: '/regional-lead/coding-challenges', icon: Code },
     ],
   },
   {
@@ -173,6 +174,7 @@ const adminSidebar: NavSection[] = [
   {
     title: 'System Control',
     items: [
+      { name: 'Coding Challenges', path: '/admin/coding-challenges', icon: Code },
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
       { name: 'Audit Log', path: '/admin/audit-log', icon: History },
     ],
@@ -195,7 +197,7 @@ const trainingManagerSidebar: NavSection[] = [
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Daily Activity Templates', path: '/training-manager/dashboard#templates', icon: Calendar },
       { name: 'Assessments', path: '/training-manager/assessments', icon: FileCheck },
-      { name: 'Coding Challenges', path: '/training-manager/dashboard#challenges', icon: Terminal },
+      { name: 'Coding Challenges', path: '/training-manager/coding-challenges', icon: Terminal },
     ],
   },
   {
@@ -220,7 +222,7 @@ const mentorSidebar: NavSection[] = [
     title: 'Mentorship Activities',
     items: [
       { name: 'My Mentees', path: '/mentor/dashboard#mentees', icon: Users },
-      { name: 'Coding Review Queue', path: '/mentor/dashboard#review-queue', icon: Code },
+      { name: 'Coding Review Queue', path: '/mentor/coding-reviews', icon: Code },
       { name: 'Mock Interviews', path: '/mentor/dashboard#mock-interviews', icon: Video },
       { name: 'Feedback History', path: '/mentor/dashboard#feedback-history', icon: MessageSquare },
       { name: 'Recommendations', path: '/mentor/dashboard#recommendations', icon: Lightbulb },

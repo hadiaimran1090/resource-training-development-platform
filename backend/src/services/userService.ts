@@ -26,6 +26,7 @@ export class UserService {
 
     return {
       id: row.id,
+      resourceId: row.resource_id || null,
       name: row.name,
       email: row.email,
       employeeId: row.employee_id,
@@ -71,6 +72,7 @@ export class UserService {
         reg.name AS region_name,
         p.name AS practice_name,
         res.phone_number,
+        res.id AS resource_id,
         res.designation,
         res.experience_years,
         res.current_status,
@@ -230,6 +232,7 @@ export class UserService {
         reg.name AS region_name,
         p.name AS practice_name,
         res.phone_number,
+        res.id AS resource_id,
         res.designation,
         res.experience_years,
         res.current_status,
@@ -631,4 +634,3 @@ export class UserService {
     }
   }
 }
-

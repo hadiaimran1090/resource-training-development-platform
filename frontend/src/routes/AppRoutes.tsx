@@ -32,6 +32,9 @@ import { TodaysActivitiesPage } from '../pages/resource/TodaysActivitiesPage';
 import { MyTrainingPlanPage } from '../pages/resource/MyTrainingPlanPage';
 import { AssessmentManagementPage } from '../pages/training-manager/AssessmentManagementPage';
 import { TakeAssessmentPage } from '../pages/resource/TakeAssessmentPage';
+import { CodingChallengeCatalogPage } from '../pages/training-manager/CodingChallengeCatalogPage';
+import { ResourceCodingChallengesPage } from '../pages/resource/ResourceCodingChallengesPage';
+import { MentorCodingReviewPage } from '../pages/mentor/MentorCodingReviewPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -292,6 +295,47 @@ const ProtectedLayout: React.FC = () => {
           }
         />
         <Route path="/assessments" element={<TakeAssessmentPage />} />
+        <Route
+          path="/training-manager/coding-challenges"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'Regional Lead', 'System Administrator']}>
+              <CodingChallengeCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/coding-challenges"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'Training Manager', 'System Administrator']}>
+              <CodingChallengeCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/coding-challenges"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead']}>
+              <CodingChallengeCatalogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/coding-challenges"
+          element={
+            <RequireRole allowedRoles={['Resource', 'System Administrator', 'Regional Lead']}>
+              <ResourceCodingChallengesPage />
+            </RequireRole>
+          }
+        />
+        <Route path="/coding-challenges" element={<ResourceCodingChallengesPage />} />
+        <Route
+          path="/mentor/coding-reviews"
+          element={
+            <RequireRole allowedRoles={['Mentor', 'Regional Lead', 'Training Manager', 'System Administrator']}>
+              <MentorCodingReviewPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="/practice-lead/dashboard"
           element={

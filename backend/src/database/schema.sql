@@ -394,3 +394,40 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_entity ON notifications(related_entity_type, related_entity_id);
+
+-- 28. Coding Challenges
+CREATE TABLE IF NOT EXISTS coding_challenges (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    language VARCHAR(50) NOT NULL,
+    difficulty_level INT NOT NULL CHECK (difficulty_level BETWEEN 1 AND 5),
+    target_role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+    description TEXT NOT NULL,
+    test_cases JSONB NOT NULL,
+    created_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_coding_challenges_target_role ON coding_challenges(target_role_profile_id);
+CREATE INDEX IF NOT EXISTS idx_coding_challenges_created_by ON coding_challenges(created_by);
+
+-- 29. Coding Submissions
+CREATE TABLE IF NOT EXISTS coding_submissions (
+    id SERIAL PRIMARY KEY,
+    challenge_id INT NOT NULL REFERENCES coding_challenges(id) ON DELETE RESTRICT,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    submitted_code TEXT NOT NULL,
+    submission_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    test_pass_count INT NOT NULL DEFAULT 0,
+    total_tests INT NOT NULL DEFAULT 0,
+    score NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+    status VARCHAR(30) NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'passed', 'failed')),
+    reviewed_by INT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_coding_submissions_challenge ON coding_submissions(challenge_id);
+CREATE INDEX IF NOT EXISTS idx_coding_submissions_resource ON coding_submissions(resource_id);
+CREATE INDEX IF NOT EXISTS idx_coding_submissions_status ON coding_submissions(status);
+

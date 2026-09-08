@@ -16,6 +16,7 @@ export interface BenchRecordDTO {
 
 export interface UserDetailDTO {
   id: number;
+  resourceId?: number | null;
   name: string;
   email: string;
   employeeId: string;
@@ -106,4 +107,3 @@ export interface PracticeCatalogDTO {
   leadUserName?: string | null;
   isActive: boolean;
 }
-

@@ -323,6 +323,33 @@ export const migrateLocalToNeon = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS coding_challenges (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        language VARCHAR(50) NOT NULL,
+        difficulty_level INT NOT NULL CHECK (difficulty_level BETWEEN 1 AND 5),
+        target_role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+        description TEXT NOT NULL,
+        test_cases JSONB NOT NULL,
+        created_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS coding_submissions (
+        id SERIAL PRIMARY KEY,
+        challenge_id INT NOT NULL REFERENCES coding_challenges(id) ON DELETE RESTRICT,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        submitted_code TEXT NOT NULL,
+        submission_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        test_pass_count INT NOT NULL DEFAULT 0,
+        total_tests INT NOT NULL DEFAULT 0,
+        score NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+        status VARCHAR(30) NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'passed', 'failed')),
+        reviewed_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_training_assignments_resource_id ON training_assignments(resource_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_track_id ON training_assignments(track_id);
       CREATE INDEX IF NOT EXISTS idx_training_assignments_assigned_by ON training_assignments(assigned_by);
@@ -338,12 +365,18 @@ export const migrateLocalToNeon = async () => {
       CREATE INDEX IF NOT EXISTS idx_skill_requests_status ON skill_requests(status);
       CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_notifications_entity ON notifications(related_entity_type, related_entity_id);
+      CREATE INDEX IF NOT EXISTS idx_coding_challenges_target_role ON coding_challenges(target_role_profile_id);
+      CREATE INDEX IF NOT EXISTS idx_coding_submissions_challenge ON coding_submissions(challenge_id);
+      CREATE INDEX IF NOT EXISTS idx_coding_submissions_resource ON coding_submissions(resource_id);
+      CREATE INDEX IF NOT EXISTS idx_coding_submissions_status ON coding_submissions(status);
     `);
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        coding_submissions,
+        coding_challenges,
         notifications,
         skill_requests,
         assessment_answers,
@@ -472,12 +505,16 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${regPracRes.rows.length} region_practices junction links.`);
 
     // 6. User Roles
+    const validRoleIdsRes = await neonClient.query(`SELECT id FROM roles`);
+    const validRoleIds = new Set(validRoleIdsRes.rows.map((r: any) => r.id));
+
     const userRolesRes = await localClient.query(
       `SELECT ur.* FROM user_roles ur
        INNER JOIN users u ON ur.user_id = u.id
        INNER JOIN roles r ON ur.role_id = r.id`
     );
     for (const ur of userRolesRes.rows) {
+      if (!validUserIds.has(ur.user_id) || !validRoleIds.has(ur.role_id)) continue;
       await neonClient.query(
         `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)`,
         [ur.user_id, ur.role_id]
@@ -803,8 +840,58 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${ansRes.rows.length} assessment_answers.`);
     await neonClient.query(`SELECT setval('assessment_answers_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_answers))`);
 
+    // 27. Coding Challenges
+    const ccRes = await localClient.query(`SELECT * FROM coding_challenges ORDER BY id`);
+    for (const cc of ccRes.rows) {
+      const createdBy = cc.created_by && validUserIds.has(cc.created_by) ? cc.created_by : null;
+      if (!createdBy) continue;
+      await neonClient.query(
+        `INSERT INTO coding_challenges (id, title, language, difficulty_level, target_role_profile_id, description, test_cases, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          cc.id,
+          cc.title,
+          cc.language,
+          cc.difficulty_level,
+          cc.target_role_profile_id || null,
+          cc.description,
+          typeof cc.test_cases === 'string' ? cc.test_cases : JSON.stringify(cc.test_cases),
+          createdBy,
+          cc.created_at,
+          cc.updated_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${ccRes.rows.length} coding_challenges.`);
+    await neonClient.query(`SELECT setval('coding_challenges_id_seq', (SELECT COALESCE(MAX(id), 1) FROM coding_challenges))`);
+
+    // 28. Coding Submissions
+    const csRes = await localClient.query(`SELECT * FROM coding_submissions ORDER BY id`);
+    for (const cs of csRes.rows) {
+      const reviewedBy = cs.reviewed_by && validUserIds.has(cs.reviewed_by) ? cs.reviewed_by : null;
+      await neonClient.query(
+        `INSERT INTO coding_submissions (id, challenge_id, resource_id, submitted_code, submission_date, test_pass_count, total_tests, score, status, reviewed_by, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          cs.id,
+          cs.challenge_id,
+          cs.resource_id,
+          cs.submitted_code,
+          cs.submission_date,
+          cs.test_pass_count,
+          cs.total_tests,
+          cs.score,
+          cs.status,
+          reviewedBy,
+          cs.created_at,
+        ]
+      );
+    }
+    console.log(`Migrated ${csRes.rows.length} coding_submissions.`);
+    await neonClient.query(`SELECT setval('coding_submissions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM coding_submissions))`);
+
     console.log('\n======================================================');
-    console.log(' SUCCESS: All local database data & Day 8 Assessment Engine data fully migrated to Neon Cloud PostgreSQL!');
+    console.log(' SUCCESS: All local database data & Day 9 Coding Challenges data fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
     console.error('Migration error:', error?.message || error);

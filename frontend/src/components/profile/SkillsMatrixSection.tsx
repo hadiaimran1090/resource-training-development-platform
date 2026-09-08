@@ -45,15 +45,17 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   const [formSource, setFormSource] = useState<string>('self');
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  // Skill Request State (Propose New Skill)
+  // Creating a catalog skill is kept inside the Add Skill form.
+  const [isCreatingNewSkill, setIsCreatingNewSkill] = useState(false);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillCategory, setNewSkillCategory] = useState<'technical' | 'secondary' | 'soft'>('technical');
+  // Kept for the legacy request panels below; they are not exposed from this screen.
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestSkillName, setRequestSkillName] = useState('');
   const [requestCategory, setRequestCategory] = useState<'technical' | 'secondary' | 'soft'>('technical');
   const [requestJustification, setRequestJustification] = useState('');
   const [requestSubmitting, setRequestSubmitting] = useState(false);
-
-  // Skill-request decisions are handled from the Regional Lead notifications page.
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [pendingRequests] = useState<any[]>([]);
 
   const userRoles = user?.roles || (user?.role ? [user.role] : []);
   const isResourceUser = user?.id === resourceUserId;
@@ -86,9 +88,6 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
       );
       setGapAnalysis(gapData);
 
-      // Kept empty here; approval actions are shown only in Notifications.
-      setPendingRequests([]);
-
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load skills matrix data.');
     } finally {
@@ -98,42 +97,23 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
 
   const handleProposeSkill = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestSkillName.trim()) {
-      setError('Please enter a skill name.');
-      return;
-    }
-
     setRequestSubmitting(true);
-    setError(null);
-    setSuccessMsg(null);
-
     try {
-      await skillApi.requestNewSkill({
-        skill_name: requestSkillName.trim(),
-        category: requestCategory,
-        justification: requestJustification.trim(),
-      });
-      setSuccessMsg(`Skill request for "${requestSkillName.trim()}" submitted for Regional Lead approval.`);
+      await skillApi.requestNewSkill({ skill_name: requestSkillName.trim(), category: requestCategory, justification: requestJustification.trim() });
       setIsRequestModalOpen(false);
       setRequestSkillName('');
+      setRequestCategory('technical');
       setRequestJustification('');
-      await loadData();
+      setSuccessMsg('Skill request sent to your Regional Lead for approval.');
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to submit skill request.');
+      setError(err?.response?.data?.message || 'Failed to submit skill request.');
     } finally {
       setRequestSubmitting(false);
     }
   };
 
-  const handleApproveSkillRequest = async (reqId: number, name: string) => {
-    await skillApi.approveSkillRequest(reqId);
-    setSuccessMsg(`Approved skill "${name}".`);
-  };
-
-  const handleRejectSkillRequest = async (reqId: number, name: string) => {
-    await skillApi.rejectSkillRequest(reqId);
-    setSuccessMsg(`Rejected skill request "${name}".`);
-  };
+  const handleApproveSkillRequest = async (id: number) => { await skillApi.approveSkillRequest(id); };
+  const handleRejectSkillRequest = async (id: number) => { await skillApi.rejectSkillRequest(id); };
 
   useEffect(() => {
     loadData();
@@ -159,6 +139,9 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
     setFormCurrentLevel(3.0);
     setFormTargetLevel(4.0);
     setFormSource(isResourceUser && !canEditAnySource ? 'self' : 'self');
+    setIsCreatingNewSkill(false);
+    setNewSkillName('');
+    setNewSkillCategory('technical');
     setIsModalOpen(true);
   };
 
@@ -173,8 +156,12 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
 
   const handleSaveSkill = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formSkillId) {
-      setError('Please select a skill.');
+    if (isCreatingNewSkill && !newSkillName.trim()) {
+      setError('Please enter a name for the new skill.');
+      return;
+    }
+    if (!isCreatingNewSkill && !formSkillId) {
+      setError('Please select a skill or create a new one.');
       return;
     }
 
@@ -183,6 +170,15 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
     setSuccessMsg(null);
 
     try {
+      let skillId = Number(formSkillId);
+      if (!editingEntry && isCreatingNewSkill) {
+        const createdSkill = await skillApi.createSkill({
+          name: newSkillName.trim(),
+          category: newSkillCategory,
+        });
+        skillId = createdSkill.id;
+      }
+
       if (editingEntry) {
         // Update existing entry
         await skillApi.updateResourceSkill(resourceId, Number(formSkillId), {
@@ -194,12 +190,12 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
       } else {
         // Add new entry
         await skillApi.addResourceSkill(resourceId, {
-          skill_id: Number(formSkillId),
+          skill_id: skillId,
           current_level: Number(formCurrentLevel),
           target_level: formTargetLevel !== '' ? Number(formTargetLevel) : null,
           source: formSource,
         });
-        setSuccessMsg('Skill added to matrix successfully.');
+        setSuccessMsg(isCreatingNewSkill ? 'New skill created and added to matrix successfully.' : 'Skill added to matrix successfully.');
       }
 
       setIsModalOpen(false);
@@ -343,15 +339,7 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3.5 py-2 font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Existing Skill</span>
-          </button>
-
-          <button
-            onClick={() => setIsRequestModalOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3.5 py-2 font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Propose New Skill</span>
+            <span>Add Skill</span>
           </button>
         </div>
       </div>
@@ -515,20 +503,39 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
                     value={editingEntry.skill_name || ''}
                     className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
                   />
+                ) : isCreatingNewSkill ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      placeholder="e.g. Kubernetes Cluster Operations"
+                      value={newSkillName}
+                      onChange={(e) => setNewSkillName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                    <select value={newSkillCategory} onChange={(e) => setNewSkillCategory(e.target.value as 'technical' | 'secondary' | 'soft')} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                      <option value="technical">Technical Skill</option>
+                      <option value="secondary">Secondary / Framework Skill</option>
+                      <option value="soft">Soft Skill / Leadership</option>
+                    </select>
+                    <button type="button" onClick={() => setIsCreatingNewSkill(false)} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline">Back to skill catalog</button>
+                  </div>
                 ) : (
-                  <select
-                    value={formSkillId}
-                    onChange={(e) => setFormSkillId(Number(e.target.value))}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="">Select a skill from catalog...</option>
-                    {skillsCatalog.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.category})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      value={formSkillId}
+                      onChange={(e) => setFormSkillId(Number(e.target.value))}
+                      required
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value="">Select a skill from catalog...</option>
+                      {skillsCatalog.filter((s) => !skillsMatrix.some((entry) => entry.skill_id === s.id)).map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => { setIsModalOpen(false); setIsRequestModalOpen(true); }} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline">Can&apos;t find the skill? Create a new skill</button>
+                  </div>
                 )}
               </div>
 
@@ -650,13 +657,13 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
 
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
-                    onClick={() => handleRejectSkillRequest(req.id, req.skill_name)}
+                    onClick={() => handleRejectSkillRequest(req.id)}
                     className="px-3 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
                   >
                     Reject
                   </button>
                   <button
-                    onClick={() => handleApproveSkillRequest(req.id, req.skill_name)}
+                    onClick={() => handleApproveSkillRequest(req.id)}
                     className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-2xs"
                   >
                     Approve & Add Skill

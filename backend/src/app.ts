@@ -13,6 +13,7 @@ import trainingCatalogRoutes from './routes/trainingCatalogRoutes.js';
 import trainingAssignmentRoutes from './routes/trainingAssignmentRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import assessmentRoutes from './routes/assessmentRoutes.js';
+import codingChallengeRoutes from './routes/codingChallengeRoutes.js';
 import skillRequestRoutes from './routes/skillRequestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
@@ -84,6 +85,7 @@ app.use('/api', trainingCatalogRoutes);
 app.use('/api', trainingAssignmentRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', assessmentRoutes);
+app.use('/api', codingChallengeRoutes);
 
 // Error Handler Middleware
 app.use(errorHandler);
