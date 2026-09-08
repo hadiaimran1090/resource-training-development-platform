@@ -71,7 +71,7 @@ const corsOptions: CorsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// This runs before all routes, including OPTIONS preflight requests.
+// This runs before all routes including OPTIONS preflight requests.
 app.use(cors(corsOptions));
 
 app.use(express.json());
