@@ -27,6 +27,7 @@ neonPool.on('error', (err) => console.error('[Neon Pool Error]', err.message));
 
 export const migrateLocalToNeon = async () => {
   let localClient, neonClient;
+  let neonTransactionStarted = false;
   try {
     console.log('Connecting to Local PostgreSQL...');
     localClient = await localPool.connect();
@@ -370,6 +371,11 @@ export const migrateLocalToNeon = async () => {
       CREATE INDEX IF NOT EXISTS idx_coding_submissions_resource ON coding_submissions(resource_id);
       CREATE INDEX IF NOT EXISTS idx_coding_submissions_status ON coding_submissions(status);
     `);
+
+    // Keep the clean sync atomic. A failed import must not leave Neon empty or
+    // only partially populated after the truncate below.
+    await neonClient.query('BEGIN');
+    neonTransactionStarted = true;
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
@@ -890,11 +896,22 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${csRes.rows.length} coding_submissions.`);
     await neonClient.query(`SELECT setval('coding_submissions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM coding_submissions))`);
 
+    await neonClient.query('COMMIT');
+    neonTransactionStarted = false;
+
     console.log('\n======================================================');
     console.log(' SUCCESS: All local database data & Day 9 Coding Challenges data fully migrated to Neon Cloud PostgreSQL!');
     console.log('======================================================\n');
   } catch (error: any) {
+    if (neonClient && neonTransactionStarted) {
+      try {
+        await neonClient.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error('Migration rollback error:', rollbackError?.message || rollbackError);
+      }
+    }
     console.error('Migration error:', error?.message || error);
+    process.exitCode = 1;
   } finally {
     if (localClient) localClient.release();
     if (neonClient) neonClient.release();
