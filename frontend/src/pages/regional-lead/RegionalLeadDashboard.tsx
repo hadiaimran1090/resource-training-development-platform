@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatCard } from '../../components/ui/StatCard';
@@ -15,6 +15,9 @@ import {
   ChevronDown,
   BookOpen,
   ArrowRight,
+  Target,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -25,8 +28,15 @@ import {
   Tooltip,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from 'recharts';
+import {
+  getDevelopmentPlans,
+  approveDevelopmentPlan,
+  rejectDevelopmentPlan,
+  type DevelopmentPlan,
+} from '../../api/developmentPlanApi';
+import { useAuth } from '../../context/AuthContext';
 
 const benchVolumeData = [
   { month: 'Mar', volume: 18 },
@@ -46,21 +56,76 @@ const benchCompData = [
 ];
 
 export const RegionalLeadDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [pendingPlans, setPendingPlans] = useState<DevelopmentPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadPendingPlans();
+  }, []);
+
+  const loadPendingPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      const res = await getDevelopmentPlans();
+      const all: DevelopmentPlan[] = res.data || [];
+      setPendingPlans(all.filter((p) => p.approval_status === 'pending'));
+    } catch (err) {
+      console.error('Failed to load pending development plans:', err);
+    } fontFinally: {
+      setLoadingPlans(false);
+    }
+  };
+
+  const handleApprove = async (planId: number) => {
+    try {
+      setProcessingId(planId);
+      await approveDevelopmentPlan(planId);
+      await loadPendingPlans();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to approve plan.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (planId: number) => {
+    try {
+      setProcessingId(planId);
+      await rejectDevelopmentPlan(planId);
+      await loadPendingPlans();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to reject plan.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header with Quick Action */}
+      {/* Header with Quick Actions */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <PageHeader
           onExport={() => alert('Exporting Regional Ops Report...')}
         />
-        <Link
-          to="/regional-lead/training-assignments"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 shrink-0 mb-4 md:mb-0"
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>Manage Training Assignments</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        <div className="flex items-center gap-3 shrink-0 mb-4 md:mb-0">
+          <Link
+            to="/regional-lead/development-plans"
+            className="bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-200 shadow-xs transition-all flex items-center gap-2"
+          >
+            <Target className="w-4 h-4 text-blue-600" />
+            <span>Development Plans</span>
+          </Link>
+          <Link
+            to="/regional-lead/training-assignments"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Training Assignments</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards (6 columns) */}
@@ -211,13 +276,15 @@ export const RegionalLeadDashboard: React.FC = () => {
       {/* Main Grid Bottom Row */}
       <section className="grid grid-cols-12 gap-6">
         {/* Left Column (Span 8) At-Risk Table */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col justify-between">
+        <div id="at-risk" className="col-span-12 lg:col-span-8 bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col justify-between">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-600" />
               At-Risk Resources (Aging &gt; 45 Days)
             </h2>
-            <button className="text-blue-600 hover:underline text-xs font-semibold">View All</button>
+            <Link to="/regional-lead/resources" className="text-blue-600 hover:underline text-xs font-semibold">
+              View All
+            </Link>
           </div>
 
           <div className="overflow-x-auto">
@@ -250,9 +317,9 @@ export const RegionalLeadDashboard: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button aria-label="Action" className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
-                      <FileText className="w-4 h-4" />
-                    </button>
+                    <Link to="/regional-lead/resources" className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
+                      <FileText className="w-4 h-4 inline" />
+                    </Link>
                   </td>
                 </tr>
                 <tr className="hover:bg-slate-50/50 transition-colors">
@@ -273,32 +340,9 @@ export const RegionalLeadDashboard: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button aria-label="Action" className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
-                      <FileText className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-[10px]">
-                      DK
-                    </div>
-                    <div>
-                      <div>David Kim</div>
-                      <div className="text-[10px] text-slate-400 font-normal">UX Designer</div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-slate-500">Figma, React, Prototyping</td>
-                  <td className="py-3 px-4 font-bold text-rose-600">46</td>
-                  <td className="py-3 px-4">
-                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-[10px]">
-                      High
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <button aria-label="Action" className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
-                      <FileText className="w-4 h-4" />
-                    </button>
+                    <Link to="/regional-lead/resources" className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
+                      <FileText className="w-4 h-4 inline" />
+                    </Link>
                   </td>
                 </tr>
               </tbody>
@@ -309,44 +353,64 @@ export const RegionalLeadDashboard: React.FC = () => {
         {/* Right Column (Span 4) Dev Plans & Training Tracks */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
           {/* Pending Dev Plans */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
-            <h2 className="text-sm font-bold text-slate-900">Pending Dev Plans</h2>
-
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">S. Patel - Cloud Cert</p>
-                  <p className="text-[10px] text-slate-400">Requested 2 days ago</p>
-                </div>
-                <div className="flex gap-1">
-                  <button aria-label="Approve" className="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button aria-label="Reject" className="p-1 text-rose-600 hover:bg-rose-50 rounded">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">J. Smith - Agile Coach</p>
-                  <p className="text-[10px] text-slate-400">Requested 3 days ago</p>
-                </div>
-                <div className="flex gap-1">
-                  <button aria-label="Approve" className="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button aria-label="Reject" className="p-1 text-rose-600 hover:bg-rose-50 rounded">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+          <div id="dev-plans" className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Target className="w-4 h-4 text-blue-600" />
+                Pending Dev Plans
+              </h2>
+              {pendingPlans.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">
+                  {pendingPlans.length} Pending
+                </span>
+              )}
             </div>
 
-            <button className="w-full text-center text-xs font-semibold text-blue-600 hover:underline">
-              Review All (5)
-            </button>
+            {loadingPlans ? (
+              <p className="text-xs text-slate-400">Loading plans...</p>
+            ) : pendingPlans.length > 0 ? (
+              <div className="space-y-3">
+                {pendingPlans.slice(0, 3).map((p) => {
+                  const isSelf = user?.resourceId === p.resource_id || user?.id === p.created_by;
+
+                  return (
+                    <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">{p.resource_name}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold">{p.target_role_profile_name}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleApprove(p.id)}
+                          disabled={processingId === p.id || isSelf}
+                          title={isSelf ? 'Self-approval block: You cannot approve your own development plan.' : 'Approve Plan'}
+                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleReject(p.id)}
+                          disabled={processingId === p.id || isSelf}
+                          title={isSelf ? 'Self-approval block: You cannot reject your own development plan.' : 'Reject Plan'}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 py-2">No pending development plans requiring approval.</p>
+            )}
+
+            <Link
+              to="/regional-lead/development-plans"
+              className="block w-full text-center text-xs font-bold text-blue-600 hover:underline"
+            >
+              Review All ({pendingPlans.length})
+            </Link>
           </div>
 
           {/* Training Tracks Blue Card */}

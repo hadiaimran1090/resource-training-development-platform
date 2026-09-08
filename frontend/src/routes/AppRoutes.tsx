@@ -28,6 +28,7 @@ import { TrainingAssignmentsPage } from '../pages/regional-lead/TrainingAssignme
 import { RegionalLeadResourcesPage } from '../pages/regional-lead/RegionalLeadResourcesPage';
 import { RegionalLeadResourceDetailPage } from '../pages/regional-lead/RegionalLeadResourceDetailPage';
 import { RegionalLeadNotificationsPage } from '../pages/regional-lead/RegionalLeadNotificationsPage';
+import { RegionalLeadDevelopmentPlansPage } from '../pages/regional-lead/RegionalLeadDevelopmentPlansPage';
 import { TodaysActivitiesPage } from '../pages/resource/TodaysActivitiesPage';
 import { MyTrainingPlanPage } from '../pages/resource/MyTrainingPlanPage';
 import { AssessmentManagementPage } from '../pages/training-manager/AssessmentManagementPage';
@@ -40,6 +41,8 @@ import { ResourceInterviewHistoryPage } from '../pages/resource/ResourceIntervie
 import { CertificationVerificationPage } from '../pages/regional-lead/CertificationVerificationPage';
 import { MentorInterviewsPage } from '../pages/mentor/MentorInterviewsPage';
 import { MentorSessionsPage } from '../pages/mentor/MentorSessionsPage';
+import { MyDevelopmentPlanPage } from '../pages/resource/MyDevelopmentPlanPage';
+import { ReadinessWeightsPage } from '../pages/admin/ReadinessWeightsPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -500,6 +503,56 @@ const ProtectedLayout: React.FC = () => {
           element={
             <RequireRole allowedRoles={['Resource', 'Mentor', 'Regional Lead', 'System Administrator']}>
               <MentorSessionsPage />
+            </RequireRole>
+          }
+        />
+
+        {/* Day 11: Development Plans & Readiness Score Routes */}
+        <Route
+          path="/resource/my-development-plan"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'Training Manager', 'System Administrator']}>
+              <MyDevelopmentPlanPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/my-development-plan"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'Training Manager', 'System Administrator']}>
+              <MyDevelopmentPlanPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/development-plans"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'Training Manager', 'System Administrator']}>
+              <RegionalLeadDevelopmentPlansPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/development-plans"
+          element={
+            <RequireRole allowedRoles={['System Administrator', 'Regional Lead', 'Training Manager']}>
+              <RegionalLeadDevelopmentPlansPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/training-manager/development-plans"
+          element={
+            <RequireRole allowedRoles={['Training Manager', 'Regional Lead', 'System Administrator']}>
+              <RegionalLeadDevelopmentPlansPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/readiness-weights"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <ReadinessWeightsPage />
             </RequireRole>
           }
         />

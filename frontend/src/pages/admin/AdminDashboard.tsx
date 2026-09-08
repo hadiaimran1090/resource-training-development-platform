@@ -10,7 +10,8 @@ import {
   Filter,
   ArrowRight,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Target
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -202,11 +203,11 @@ export const AdminDashboard: React.FC = () => {
                 <span className="text-xs font-semibold">Resources</span>
               </button>
               <button
-                onClick={() => navigate('/admin/users')}
-                className="p-4 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+                onClick={() => navigate('/admin/development-plans')}
+                className="p-4 rounded-lg bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200 flex flex-col items-center justify-center gap-2 text-blue-900 transition-colors cursor-pointer col-span-2"
               >
-                <UserCheck className="w-5 h-5 text-blue-600" />
-                <span className="text-xs font-semibold">User Accounts</span>
+                <Target className="w-5 h-5 text-blue-600" />
+                <span className="text-xs font-bold">Dev Plans & Approvals</span>
               </button>
             </div>
           </div>

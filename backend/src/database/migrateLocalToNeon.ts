@@ -426,6 +426,54 @@ export const migrateLocalToNeon = async () => {
       CREATE INDEX IF NOT EXISTS idx_interview_feedback_given_by ON interview_feedback(given_by);
       CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_mentor ON mentoring_sessions(mentor_id);
       CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_resource ON mentoring_sessions(resource_id);
+
+      CREATE TABLE IF NOT EXISTS development_plans (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        target_role_profile_id INT NOT NULL REFERENCES role_profiles(id) ON DELETE RESTRICT,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed')),
+        created_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        approved_by INT REFERENCES users(id) ON DELETE SET NULL,
+        approval_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS development_plan_items (
+        id SERIAL PRIMARY KEY,
+        plan_id INT NOT NULL REFERENCES development_plans(id) ON DELETE CASCADE,
+        week_number INT NOT NULL,
+        focus_area VARCHAR(255) NOT NULL,
+        training_track_id INT REFERENCES training_tracks(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS readiness_scores (
+        id SERIAL PRIMARY KEY,
+        resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+        calculated_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        technical_skills_pct NUMERIC(5,2) NOT NULL,
+        coding_pct NUMERIC(5,2) NOT NULL,
+        assessment_pct NUMERIC(5,2) NOT NULL,
+        interview_readiness_pct NUMERIC(5,2) NOT NULL,
+        project_experience_pct NUMERIC(5,2) NOT NULL,
+        communication_pct NUMERIC(5,2) NOT NULL,
+        certification_pct NUMERIC(5,2) NOT NULL,
+        overall_pct NUMERIC(5,2) NOT NULL,
+        category VARCHAR(30) NOT NULL CHECK (category IN ('ready', 'almost_ready', 'needs_development', 'high_risk'))
+      );
+
+      CREATE TABLE IF NOT EXISTS readiness_score_weights (
+        id SERIAL PRIMARY KEY,
+        component_name VARCHAR(50) UNIQUE NOT NULL,
+        weight_pct NUMERIC(5,2) NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     // Keep the clean sync atomic. A failed import must not leave Neon empty or
@@ -437,6 +485,10 @@ export const migrateLocalToNeon = async () => {
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        readiness_score_weights,
+        readiness_scores,
+        development_plan_items,
+        development_plans,
         mentoring_sessions,
         interview_feedback,
         interviews,
@@ -1049,6 +1101,58 @@ export const migrateLocalToNeon = async () => {
     }
     console.log(`Migrated ${msRes.rows.length} mentoring_sessions.`);
     await neonClient.query(`SELECT setval('mentoring_sessions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM mentoring_sessions))`);
+
+    // 33. Development Plans
+    const dpRes = await localClient.query(`SELECT * FROM development_plans ORDER BY id`);
+    for (const dp of dpRes.rows) {
+      const createdBy = dp.created_by && validUserIds.has(dp.created_by) ? dp.created_by : null;
+      const approvedBy = dp.approved_by && validUserIds.has(dp.approved_by) ? dp.approved_by : null;
+      if (!createdBy) continue;
+      await neonClient.query(
+        `INSERT INTO development_plans (id, resource_id, target_role_profile_id, start_date, end_date, status, created_by, approved_by, approval_status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [dp.id, dp.resource_id, dp.target_role_profile_id, dp.start_date, dp.end_date, dp.status, createdBy, approvedBy, dp.approval_status, dp.created_at, dp.updated_at]
+      );
+    }
+    console.log(`Migrated ${dpRes.rows.length} development_plans.`);
+    await neonClient.query(`SELECT setval('development_plans_id_seq', (SELECT COALESCE(MAX(id), 1) FROM development_plans))`);
+
+    // 34. Development Plan Items
+    const dpiRes = await localClient.query(`SELECT * FROM development_plan_items ORDER BY id`);
+    for (const dpi of dpiRes.rows) {
+      await neonClient.query(
+        `INSERT INTO development_plan_items (id, plan_id, week_number, focus_area, training_track_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [dpi.id, dpi.plan_id, dpi.week_number, dpi.focus_area, dpi.training_track_id || null, dpi.created_at, dpi.updated_at]
+      );
+    }
+    console.log(`Migrated ${dpiRes.rows.length} development_plan_items.`);
+    await neonClient.query(`SELECT setval('development_plan_items_id_seq', (SELECT COALESCE(MAX(id), 1) FROM development_plan_items))`);
+
+    // 35. Readiness Scores
+    const rsHistRes = await localClient.query(`SELECT * FROM readiness_scores ORDER BY id`);
+    for (const rs of rsHistRes.rows) {
+      await neonClient.query(
+        `INSERT INTO readiness_scores (id, resource_id, calculated_date, technical_skills_pct, coding_pct, assessment_pct, interview_readiness_pct, project_experience_pct, communication_pct, certification_pct, overall_pct, category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [rs.id, rs.resource_id, rs.calculated_date, rs.technical_skills_pct, rs.coding_pct, rs.assessment_pct, rs.interview_readiness_pct, rs.project_experience_pct, rs.communication_pct, rs.certification_pct, rs.overall_pct, rs.category]
+      );
+    }
+    console.log(`Migrated ${rsHistRes.rows.length} readiness_scores.`);
+    await neonClient.query(`SELECT setval('readiness_scores_id_seq', (SELECT COALESCE(MAX(id), 1) FROM readiness_scores))`);
+
+    // 36. Readiness Score Weights
+    const rswRes = await localClient.query(`SELECT * FROM readiness_score_weights ORDER BY id`);
+    for (const rsw of rswRes.rows) {
+      await neonClient.query(
+        `INSERT INTO readiness_score_weights (id, component_name, weight_pct, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (component_name) DO UPDATE SET weight_pct = EXCLUDED.weight_pct, is_active = EXCLUDED.is_active`,
+        [rsw.id, rsw.component_name, rsw.weight_pct, rsw.is_active, rsw.created_at, rsw.updated_at]
+      );
+    }
+    console.log(`Migrated ${rswRes.rows.length} readiness_score_weights.`);
+    await neonClient.query(`SELECT setval('readiness_score_weights_id_seq', (SELECT COALESCE(MAX(id), 1) FROM readiness_score_weights))`);
 
     await neonClient.query('COMMIT');
     neonTransactionStarted = false;

@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 import { StatCard } from '../../components/ui/StatCard';
 import {
   GitBranch,
@@ -13,14 +13,22 @@ import {
   Database,
   ChevronRight,
   Filter,
-  Sparkles
+  Sparkles,
+  Target
 } from 'lucide-react';
 
 export const TrainingManagerDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex justify-end items-center gap-4 mb-2">
+      <div className="flex justify-end items-center gap-3 mb-2">
+        <Link
+          to="/training-manager/development-plans"
+          className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2 rounded-lg font-bold text-xs transition-colors flex items-center gap-2 shadow-xs whitespace-nowrap"
+        >
+          <Target className="w-4 h-4 text-blue-600" />
+          <span>Development Plans</span>
+        </Link>
         <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <PlusCircle className="w-4 h-4" />
           Create Training Track

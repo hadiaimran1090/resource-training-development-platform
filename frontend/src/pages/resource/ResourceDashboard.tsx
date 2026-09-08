@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { getReadinessScoreHistory } from '../../api/readinessScoreApi';
+import type { ReadinessScore } from '../../api/readinessScoreApi';
+import { getResourceDevelopmentPlan } from '../../api/developmentPlanApi';
+import { ReadinessScoreCard } from '../../components/readiness/ReadinessScoreCard';
 import { StatCard } from '../../components/ui/StatCard';
+import { Link } from 'react-router-dom';
 import {
   Calendar,
   CheckCircle2,
@@ -8,36 +14,72 @@ import {
   Circle,
   Clock,
   HelpCircle,
-  Bell,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
 
-const readinessDonut = [
-  { name: 'Completed', value: 72, color: '#004ac6' },
-  { name: 'Remaining', value: 28, color: '#e2e8f0' },
-];
+import { resourceApi } from '../../api/resourceApi';
 
 export const ResourceDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [readinessScore, setReadinessScore] = useState<ReadinessScore | null>(null);
+  const [history, setHistory] = useState<ReadinessScore[]>([]);
+  const [resolvedResourceId, setResolvedResourceId] = useState<number | null>(user?.resourceId || null);
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  const loadData = async () => {
+    try {
+      let resId = user?.resourceId;
+      if (!resId) {
+        const profile = await resourceApi.getMyProfile();
+        resId = profile.id;
+        setResolvedResourceId(profile.id);
+      }
+      if (resId) {
+        const [scoreRes] = await Promise.all([
+          getReadinessScoreHistory(resId),
+          getResourceDevelopmentPlan(resId),
+        ]);
+        setHistory(scoreRes.data?.history || []);
+        setReadinessScore(scoreRes.data?.latest || null);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard readiness data:', err);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex justify-end items-center mb-2">
-        <div className="flex items-center gap-3">
-          <button aria-label="Notifications" className="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-600 rounded-full" />
-          </button>
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-            A
-          </div>
+      {/* Top Banner Action */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            Resource Learning Dashboard
+          </h1>
+          <p className="text-xs text-slate-400">
+            Track your deployment readiness score, weekly activities, and skill gap milestones
+          </p>
         </div>
+
+        <Link
+          to="/resource/my-development-plan"
+          className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-2 shadow-lg shadow-blue-600/20"
+        >
+          <Target className="w-4 h-4" />
+          View My Development Plan
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
+
+      {/* Deployment Readiness Widget */}
+      <ReadinessScoreCard
+        score={readinessScore}
+        resourceId={resolvedResourceId || user?.resourceId}
+        canRecalculate={false}
+        history={history}
+      />
 
       {/* KPI Cards (4 columns) */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -55,7 +97,7 @@ export const ResourceDashboard: React.FC = () => {
         />
         <StatCard
           title="Overall Readiness"
-          value="72%"
+          value={`${readinessScore?.overall_pct || 0}%`}
           icon={Target}
           subtitle="Target: 85% for deployment"
         />
@@ -75,50 +117,8 @@ export const ResourceDashboard: React.FC = () => {
 
       {/* Main Bento Grid Top Row */}
       <section className="grid grid-cols-12 gap-6">
-        {/* Readiness Progress Donut Card (Span 4) */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 flex flex-col items-center justify-between text-center">
-          <h2 className="text-base font-bold text-slate-900 w-full text-left mb-4">
-            Readiness Progress
-          </h2>
-
-          <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={readinessDonut}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={75}
-                  startAngle={90}
-                  endAngle={-270}
-                  dataKey="value"
-                >
-                  {readinessDonut.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-extrabold text-slate-900 leading-none">72%</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                Score
-              </span>
-            </div>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold my-3">
-            <ArrowRight className="w-3.5 h-3.5" /> Almost Ready
-          </div>
-
-          <p className="text-xs text-slate-400 font-medium">
-            Complete 2 more advanced modules to reach target readiness.
-          </p>
-        </div>
-
-        {/* Skill Gap Analysis (Span 8) */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 flex flex-col justify-between">
+        {/* Skill Gap Analysis (Span 12) */}
+        <div className="col-span-12 bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-base font-bold text-slate-900">Skill Gap Analysis</h2>
             <button className="text-xs font-bold text-blue-600 hover:underline">View Details</button>

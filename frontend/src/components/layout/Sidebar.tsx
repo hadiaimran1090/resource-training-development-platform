@@ -6,6 +6,7 @@ import {
   User,
   Award,
   Route,
+  Target,
   Calendar,
   FileCheck,
   Briefcase,
@@ -70,6 +71,7 @@ const resourceSidebar: NavSection[] = [
     items: [
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
       { name: 'My Training Plan', path: '/resource/my-training-plan', icon: Route },
+      { name: 'My Development Plan', path: '/resource/my-development-plan', icon: Target },
       { name: "Today's Activities", path: '/resource/todays-activities', icon: Calendar },
       { name: 'Assessments', path: '/resource/assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/resource/coding-challenges', icon: Code },
@@ -81,7 +83,7 @@ const resourceSidebar: NavSection[] = [
       { name: 'My Profile', path: '/profile', icon: User },
       { name: 'My Certifications', path: '/my-certifications', icon: Award },
       { name: 'Interview History', path: '/resource/interview-history', icon: History },
-      { name: 'My Readiness Score', path: '/resource/dashboard#readiness', icon: Gauge },
+      { name: 'My Readiness Score', path: '/resource/my-development-plan', icon: Gauge },
     ],
   },
 ];
@@ -92,42 +94,34 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Regional Lead Dashboard', path: '/regional-lead/dashboard', icon: LayoutDashboard },
+      { name: 'Notifications', path: '/regional-lead/notifications', icon: Bell },
+      { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
   {
     title: 'Approvals & Tracking',
     items: [
-      { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
-      { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
+      { name: 'Resources Management', path: '/regional-lead/resources', icon: Users },
+      { name: 'Development Plans', path: '/regional-lead/development-plans', icon: Target },
+      { name: 'Bench Management', path: '/regional-lead/assignments', icon: CheckSquare },
+      { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: Route },
       { name: 'Verify Certifications', path: '/regional-lead/certifications', icon: CheckCircle },
-      { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
-      { name: 'Resources', path: '/regional-lead/resources', icon: Users },
-      { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
-      { name: 'Interviews', path: '/regional-lead/interviews', icon: Video },
     ],
   },
-
   {
     title: 'Curriculum & Catalog',
     items: [
-      { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
-      { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
+      { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
+      { name: 'Role Profiles', path: '/admin/role-profiles', icon: UserPlus },
+      { name: 'Skills Catalog', path: '/admin/skills', icon: Award },
       { name: 'Assessments', path: '/regional-lead/assessments', icon: FileCheck },
-      { name: 'Coding Challenges', path: '/regional-lead/coding-challenges', icon: Code },
+      { name: 'Coding Challenges', path: '/regional-lead/coding-challenges', icon: Terminal },
     ],
   },
   {
     title: 'Career & Profile',
     items: [
-      { name: 'My Profile', path: '/profile', icon: User },
       { name: 'My Certifications', path: '/my-certifications', icon: Award },
-    ],
-  },
-  {
-    title: 'Alerts & System',
-    items: [
-      { name: 'At-Risk Resources', path: '/regional-lead/dashboard#at-risk', icon: AlertTriangle },
-      { name: 'Notifications', path: '/regional-lead/notifications', icon: Bell },
     ],
   },
 ];
@@ -181,14 +175,16 @@ const adminSidebar: NavSection[] = [
     ],
   },
   {
-    title: 'Approvals',
+    title: 'Approvals & Tracking',
     items: [
+      { name: 'Development Plans', path: '/admin/development-plans', icon: Target },
       { name: 'Verify Certifications', path: '/admin/certifications', icon: CheckCircle },
     ],
   },
   {
     title: 'System Control',
     items: [
+      { name: 'Readiness Weights', path: '/admin/readiness-weights', icon: Settings },
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
       { name: 'Audit Log', path: '/admin/audit-log', icon: History },
     ],
@@ -218,6 +214,12 @@ const trainingManagerSidebar: NavSection[] = [
       { name: 'Daily Activity Templates', path: '/training-manager/dashboard#templates', icon: Calendar },
       { name: 'Assessments', path: '/training-manager/assessments', icon: FileCheck },
       { name: 'Coding Challenges', path: '/training-manager/coding-challenges', icon: Terminal },
+    ],
+  },
+  {
+    title: 'Approvals & Tracking',
+    items: [
+      { name: 'Development Plans', path: '/training-manager/development-plans', icon: Target },
     ],
   },
   {

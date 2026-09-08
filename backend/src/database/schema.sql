@@ -501,4 +501,83 @@ CREATE TABLE IF NOT EXISTS mentoring_sessions (
 CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_mentor ON mentoring_sessions(mentor_id);
 CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_resource ON mentoring_sessions(resource_id);
 
+-- =============================================
+-- DAY 11: DEVELOPMENT PLANS & READINESS SCORE TABLES
+-- =============================================
+
+-- 34. Development Plans Table
+CREATE TABLE IF NOT EXISTS development_plans (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    target_role_profile_id INT NOT NULL REFERENCES role_profiles(id) ON DELETE RESTRICT,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed')),
+    created_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    approved_by INT REFERENCES users(id) ON DELETE SET NULL,
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_development_plans_resource ON development_plans(resource_id);
+CREATE INDEX IF NOT EXISTS idx_development_plans_target_role ON development_plans(target_role_profile_id);
+CREATE INDEX IF NOT EXISTS idx_development_plans_status ON development_plans(status);
+
+-- 35. Development Plan Items Table
+CREATE TABLE IF NOT EXISTS development_plan_items (
+    id SERIAL PRIMARY KEY,
+    plan_id INT NOT NULL REFERENCES development_plans(id) ON DELETE CASCADE,
+    week_number INT NOT NULL,
+    focus_area VARCHAR(255) NOT NULL,
+    training_track_id INT REFERENCES training_tracks(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_development_plan_items_plan ON development_plan_items(plan_id);
+
+-- 36. Readiness Scores Table
+CREATE TABLE IF NOT EXISTS readiness_scores (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    calculated_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    technical_skills_pct NUMERIC(5,2) NOT NULL,
+    coding_pct NUMERIC(5,2) NOT NULL,
+    assessment_pct NUMERIC(5,2) NOT NULL,
+    interview_readiness_pct NUMERIC(5,2) NOT NULL,
+    project_experience_pct NUMERIC(5,2) NOT NULL,
+    communication_pct NUMERIC(5,2) NOT NULL,
+    certification_pct NUMERIC(5,2) NOT NULL,
+    overall_pct NUMERIC(5,2) NOT NULL,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('ready', 'almost_ready', 'needs_development', 'high_risk'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_readiness_scores_resource ON readiness_scores(resource_id);
+CREATE INDEX IF NOT EXISTS idx_readiness_scores_date ON readiness_scores(calculated_date DESC);
+
+-- 37. Readiness Score Weights Table (Admin Configurable)
+CREATE TABLE IF NOT EXISTS readiness_score_weights (
+    id SERIAL PRIMARY KEY,
+    component_name VARCHAR(50) UNIQUE NOT NULL,
+    weight_pct NUMERIC(5,2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE readiness_score_weights ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+-- Seed Default Weights (sums to 100%)
+INSERT INTO readiness_score_weights (component_name, weight_pct, is_active) VALUES
+    ('technical_skills', 20.00, TRUE),
+    ('coding', 20.00, TRUE),
+    ('assessment', 20.00, TRUE),
+    ('interview_readiness', 15.00, TRUE),
+    ('project_experience', 15.00, TRUE),
+    ('communication', 5.00, TRUE),
+    ('certification', 5.00, TRUE)
+ON CONFLICT (component_name) DO NOTHING;
+
+
 

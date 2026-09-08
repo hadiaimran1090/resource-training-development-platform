@@ -8,6 +8,7 @@ export interface User {
   mustResetPassword: boolean;
   roles: string[];
   role?: string;
+  resourceId?: number | null;
   regionId?: number | null;
   region: string;
   practiceId?: number | null;

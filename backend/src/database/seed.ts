@@ -690,6 +690,27 @@ export const seedDatabase = async () => {
       }
     }
 
+    // ==========================================
+    // 18. Seed: Readiness Score Weights (Default 100% distribution)
+    // ==========================================
+    const defaultWeights = [
+      { name: 'technical_skills', weight: 20.00 },
+      { name: 'coding', weight: 20.00 },
+      { name: 'assessment', weight: 20.00 },
+      { name: 'interview_readiness', weight: 15.00 },
+      { name: 'project_experience', weight: 15.00 },
+      { name: 'communication', weight: 5.00 },
+      { name: 'certification', weight: 5.00 },
+    ];
+
+    for (const w of defaultWeights) {
+      await client.query(
+        `INSERT INTO readiness_score_weights (component_name, weight_pct, is_active)
+         VALUES ($1, $2, TRUE) ON CONFLICT (component_name) DO NOTHING`,
+        [w.name, w.weight]
+      );
+    }
+
     console.log('[Database] Connected & initialized successfully.');
 
   } catch (error: any) {

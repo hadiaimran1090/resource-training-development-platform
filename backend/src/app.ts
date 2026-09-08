@@ -21,6 +21,8 @@ import certificationRoutes from './routes/certificationRoutes.js';
 
 import interviewRoutes from './routes/interviewRoutes.js';
 import mentoringSessionRoutes from './routes/mentoringSessionRoutes.js';
+import developmentPlanRoutes from './routes/developmentPlanRoutes.js';
+import readinessScoreRoutes from './routes/readinessScoreRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
@@ -112,6 +114,8 @@ app.use('/api', codingChallengeRoutes);
 app.use('/api', certificationRoutes);
 app.use('/api', interviewRoutes);
 app.use('/api', mentoringSessionRoutes);
+app.use('/api', developmentPlanRoutes);
+app.use('/api', readinessScoreRoutes);
 
 // Error Handler Middleware
 
