@@ -32,7 +32,25 @@ export class NotificationService {
     return result.rows;
   }
 
+  static async createNotification(data: {
+    user_id: number;
+    type: string;
+    message: string;
+    related_entity_type?: string;
+    related_entity_id?: number;
+  }) {
+    const { user_id, type, message, related_entity_type, related_entity_id } = data;
+    const result = await pool.query(
+      `INSERT INTO notifications (user_id, type, message, related_entity_type, related_entity_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [user_id, type, message, related_entity_type || null, related_entity_id || null]
+    );
+    return result.rows[0];
+  }
+
   static async markAsRead(id: number, userId: number) {
+
     const result = await pool.query(
       `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2 RETURNING id`,
       [id, userId]

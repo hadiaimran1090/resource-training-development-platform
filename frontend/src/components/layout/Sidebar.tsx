@@ -79,8 +79,8 @@ const resourceSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/profile', icon: User },
-      { name: 'Certifications', path: '/resource/dashboard#certifications', icon: CheckCircle },
-      { name: 'Interview History', path: '/resource/dashboard#interview-history', icon: History },
+      { name: 'Certifications', path: '/resource/certifications', icon: CheckCircle },
+      { name: 'Interview History', path: '/resource/interview-history', icon: History },
       { name: 'My Readiness Score', path: '/resource/dashboard#readiness', icon: Gauge },
     ],
   },
@@ -99,12 +99,14 @@ const regionalLeadSidebar: NavSection[] = [
     items: [
       { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
       { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
+      { name: 'Verify Certifications', path: '/regional-lead/certifications', icon: CheckCircle },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
       { name: 'Resources', path: '/regional-lead/resources', icon: Users },
       { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
-      { name: 'Interviews', path: '/regional-lead/dashboard#interviews', icon: Video },
+      { name: 'Interviews', path: '/regional-lead/interviews', icon: Video },
     ],
   },
+
   {
     title: 'Curriculum & Catalog',
     items: [
@@ -118,6 +120,7 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/profile', icon: User },
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
     ],
   },
   {
@@ -149,6 +152,12 @@ const practiceLeadSidebar: NavSection[] = [
       { name: 'Reports', path: '/practice-lead/dashboard#reports', icon: FileSpreadsheet },
     ],
   },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
+    ],
+  },
 ];
 
 // 4. System Administrator Dashboard Sidebar Configuration
@@ -172,10 +181,22 @@ const adminSidebar: NavSection[] = [
     ],
   },
   {
+    title: 'Approvals',
+    items: [
+      { name: 'Verify Certifications', path: '/admin/certifications', icon: CheckCircle },
+    ],
+  },
+  {
     title: 'System Control',
     items: [
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
       { name: 'Audit Log', path: '/admin/audit-log', icon: History },
+    ],
+  },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
     ],
   },
 ];
@@ -205,6 +226,12 @@ const trainingManagerSidebar: NavSection[] = [
       { name: 'Effectiveness Reports', path: '/training-manager/dashboard#reports', icon: LineChart },
     ],
   },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
+    ],
+  },
 ];
 
 // 6. Mentor / SME Dashboard Sidebar Configuration
@@ -221,10 +248,17 @@ const mentorSidebar: NavSection[] = [
     title: 'Mentorship Activities',
     items: [
       { name: 'My Mentees', path: '/mentor/dashboard#mentees', icon: Users },
+      { name: 'Mentoring Sessions', path: '/mentor/sessions', icon: Calendar },
       { name: 'Coding Review Queue', path: '/mentor/coding-reviews', icon: Code },
-      { name: 'Mock Interviews', path: '/mentor/dashboard#mock-interviews', icon: Video },
+      { name: 'Mock & Client Interviews', path: '/mentor/interviews', icon: Video },
       { name: 'Feedback History', path: '/mentor/dashboard#feedback-history', icon: MessageSquare },
       { name: 'Recommendations', path: '/mentor/dashboard#recommendations', icon: Lightbulb },
+    ],
+  },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
     ],
   },
 ];
@@ -246,6 +280,12 @@ const managementSidebar: NavSection[] = [
       { name: 'Bench Trends', path: '/management/dashboard#bench-trends', icon: LineChart },
       { name: 'Readiness Distribution', path: '/management/dashboard#readiness-distribution', icon: PieChart },
       { name: 'Interview & Deployment Metrics', path: '/management/dashboard#deployment-metrics', icon: BarChart2 },
+    ],
+  },
+  {
+    title: 'Career & Profile',
+    items: [
+      { name: 'My Certifications', path: '/my-certifications', icon: Award },
     ],
   },
 ];

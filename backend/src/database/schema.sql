@@ -431,3 +431,74 @@ CREATE INDEX IF NOT EXISTS idx_coding_submissions_challenge ON coding_submission
 CREATE INDEX IF NOT EXISTS idx_coding_submissions_resource ON coding_submissions(resource_id);
 CREATE INDEX IF NOT EXISTS idx_coding_submissions_status ON coding_submissions(status);
 
+-- =============================================
+-- DAY 10: CERTIFICATIONS, INTERVIEWS, MENTORING TABLES
+-- =============================================
+
+-- Add mentor_id FK reference to resources table
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS mentor_id INT REFERENCES users(id) ON DELETE SET NULL;
+
+-- 30. Certifications Table
+CREATE TABLE IF NOT EXISTS certifications (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    issuing_body VARCHAR(255),
+    date_earned DATE NOT NULL,
+    certificate_url VARCHAR(500) NOT NULL,
+    verification_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+    verified_by INT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_certifications_resource ON certifications(resource_id);
+CREATE INDEX IF NOT EXISTS idx_certifications_status ON certifications(verification_status);
+
+-- 31. Interviews Table
+CREATE TABLE IF NOT EXISTS interviews (
+    id SERIAL PRIMARY KEY,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    client_name VARCHAR(255),
+    role_profile_id INT REFERENCES role_profiles(id) ON DELETE SET NULL,
+    interview_type VARCHAR(30) NOT NULL CHECK (interview_type IN ('client', 'mock', 'technical', 'behavioral')),
+    interview_date TIMESTAMP NOT NULL,
+    result VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (result IN ('selected', 'rejected', 'pending')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_interviews_resource ON interviews(resource_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_role_profile ON interviews(role_profile_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_result ON interviews(result);
+
+-- 32. Interview Feedback Table (1:1 with Interview)
+CREATE TABLE IF NOT EXISTS interview_feedback (
+    id SERIAL PRIMARY KEY,
+    interview_id INT NOT NULL UNIQUE REFERENCES interviews(id) ON DELETE CASCADE,
+    technical_gaps TEXT,
+    communication_gaps TEXT,
+    recommendations TEXT,
+    overall_rating NUMERIC(2,1) CHECK (overall_rating IS NULL OR (overall_rating >= 0.0 AND overall_rating <= 5.0)),
+    given_by INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_interview_feedback_interview ON interview_feedback(interview_id);
+CREATE INDEX IF NOT EXISTS idx_interview_feedback_given_by ON interview_feedback(given_by);
+
+-- 33. Mentoring Sessions Table
+CREATE TABLE IF NOT EXISTS mentoring_sessions (
+    id SERIAL PRIMARY KEY,
+    mentor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    resource_id INT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    session_date TIMESTAMP NOT NULL,
+    session_type VARCHAR(30) NOT NULL CHECK (session_type IN ('review', 'mock_interview', 'feedback')),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_mentor ON mentoring_sessions(mentor_id);
+CREATE INDEX IF NOT EXISTS idx_mentoring_sessions_resource ON mentoring_sessions(resource_id);
+
+

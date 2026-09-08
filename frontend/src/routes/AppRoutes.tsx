@@ -35,6 +35,11 @@ import { TakeAssessmentPage } from '../pages/resource/TakeAssessmentPage';
 import { CodingChallengeCatalogPage } from '../pages/training-manager/CodingChallengeCatalogPage';
 import { ResourceCodingChallengesPage } from '../pages/resource/ResourceCodingChallengesPage';
 import { MentorCodingReviewPage } from '../pages/mentor/MentorCodingReviewPage';
+import { ResourceCertificationsPage } from '../pages/resource/ResourceCertificationsPage';
+import { ResourceInterviewHistoryPage } from '../pages/resource/ResourceInterviewHistoryPage';
+import { CertificationVerificationPage } from '../pages/regional-lead/CertificationVerificationPage';
+import { MentorInterviewsPage } from '../pages/mentor/MentorInterviewsPage';
+import { MentorSessionsPage } from '../pages/mentor/MentorSessionsPage';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
 const RequireRole: React.FC<{ allowedRoles: string[]; children: React.ReactNode }> = ({
@@ -414,6 +419,91 @@ const ProtectedLayout: React.FC = () => {
         <Route path="/admin/profile" element={<ResourceProfilePage />} />
         <Route path="/regional-lead/profile" element={<ResourceProfilePage />} />
         <Route path="/practice-lead/profile" element={<ResourceProfilePage />} />
+
+        {/* Day 10: Certifications, Interviews, Mentoring Routes */}
+        <Route
+          path="/resource/certifications"
+          element={
+            <ResourceCertificationsPage />
+          }
+        />
+        <Route
+          path="/certifications"
+          element={
+            <ResourceCertificationsPage />
+          }
+        />
+        <Route
+          path="/my-certifications"
+          element={
+            <ResourceCertificationsPage />
+          }
+        />
+        <Route
+          path="/regional-lead/certifications"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'System Administrator']}>
+              <CertificationVerificationPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/certifications"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <CertificationVerificationPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/interview-history"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'Mentor', 'System Administrator']}>
+              <ResourceInterviewHistoryPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/interview-history"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Regional Lead', 'Mentor', 'System Administrator']}>
+              <ResourceInterviewHistoryPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/mentor/interviews"
+          element={
+            <RequireRole allowedRoles={['Mentor', 'Regional Lead', 'System Administrator']}>
+              <MentorInterviewsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/interviews"
+          element={
+            <RequireRole allowedRoles={['Regional Lead', 'Mentor', 'System Administrator']}>
+              <MentorInterviewsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/mentor/sessions"
+          element={
+            <RequireRole allowedRoles={['Mentor', 'System Administrator']}>
+              <MentorSessionsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/resource/mentoring-sessions"
+          element={
+            <RequireRole allowedRoles={['Resource', 'Mentor', 'Regional Lead', 'System Administrator']}>
+              <MentorSessionsPage />
+            </RequireRole>
+          }
+        />
+
         <Route path="*" element={<RoleBasedDefaultRedirect />} />
       </Routes>
     </DashboardLayout>

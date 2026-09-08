@@ -16,9 +16,15 @@ import assessmentRoutes from './routes/assessmentRoutes.js';
 import codingChallengeRoutes from './routes/codingChallengeRoutes.js';
 import skillRequestRoutes from './routes/skillRequestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import path from 'path';
+import certificationRoutes from './routes/certificationRoutes.js';
+
+import interviewRoutes from './routes/interviewRoutes.js';
+import mentoringSessionRoutes from './routes/mentoringSessionRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
+
 
 const productionFrontendOrigin = 'https://resource-training-development-platf.vercel.app';
 const configuredFrontendOrigins =
@@ -70,6 +76,8 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // API Routes
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
@@ -86,8 +94,12 @@ app.use('/api', trainingAssignmentRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', assessmentRoutes);
 app.use('/api', codingChallengeRoutes);
+app.use('/api', certificationRoutes);
+app.use('/api', interviewRoutes);
+app.use('/api', mentoringSessionRoutes);
 
 // Error Handler Middleware
+
 app.use(errorHandler);
 
 export default app;

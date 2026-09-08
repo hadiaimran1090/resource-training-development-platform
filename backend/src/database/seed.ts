@@ -306,8 +306,18 @@ export const seedDatabase = async () => {
       );
     }
 
+    // Link Michael Mentor to Rachel Resource in resources table
+    const michaelUser = await client.query(`SELECT id FROM users WHERE email = 'michael@rtdp.com'`);
+    if (michaelUser.rows.length > 0) {
+      await client.query(
+        `UPDATE resources SET mentor_id = $1 WHERE user_id IN (SELECT id FROM users WHERE email = 'rachel@rtdp.com')`,
+        [michaelUser.rows[0].id]
+      );
+    }
+
     // 10. Adjust employee_id sequence start
     await client.query(`SELECT setval('employee_id_seq', 1000, true)`);
+
 
     // ==========================================
     // 11.  Seed: Skills Catalog
