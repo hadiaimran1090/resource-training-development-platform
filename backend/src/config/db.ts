@@ -6,7 +6,9 @@ dotenv.config();
 const { Pool } = pg;
 
 const connectionString =
-  process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/rtdp_db';
+  process.env.DATABASE_URL ||
+  process.env.DATABASE_URL_NEON ||
+  'postgresql://postgres:postgres@localhost:5432/rtdp_db';
 
 const isProduction =
   process.env.NODE_ENV === 'production' ||

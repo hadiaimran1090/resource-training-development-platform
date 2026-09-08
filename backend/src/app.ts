@@ -39,23 +39,38 @@ const allowedOrigins = new Set(
 // `credentials: true` requires a specific origin; never use `*` here.
 const corsOptions: CorsOptions = {
   origin(origin, callback) {
-    // Requests without Origin (health checks, curl) or from Vercel deployments are allowed.
-    if (!origin || allowedOrigins.has(origin) || origin.endsWith('.vercel.app')) {
+    if (!origin) {
       callback(null, true);
       return;
     }
 
-    callback(new Error(`CORS origin is not allowed: ${origin}`));
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+    if (
+      allowedOrigins.has(normalizedOrigin) ||
+      normalizedOrigin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      callback(null, true);
+      return;
+    }
+
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'X-CSRF-Token',
+  ],
   optionsSuccessStatus: 204,
 };
 
 // This runs before all routes, including OPTIONS preflight requests.
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
