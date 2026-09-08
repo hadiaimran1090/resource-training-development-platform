@@ -225,12 +225,15 @@ export const UserManagementPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={user.id}
+                    onClick={() => navigate(`/admin/users/${user.id}`)}
+                    className="hover:bg-blue-50/40 cursor-pointer transition-colors"
+                  >
                     {/* User Name & Email */}
                     <td className="py-4 px-6">
                       <div
-                        onClick={() => navigate(`/admin/users/${user.id}`)}
-                        className="flex items-center gap-3 cursor-pointer group"
+                        className="flex items-center gap-3 group"
                         title="Click to view complete user profile & bench history"
                       >
                         <div className="w-9 h-9 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 font-bold flex items-center justify-center text-xs shrink-0 border border-blue-100 transition-colors">
@@ -308,23 +311,32 @@ export const UserManagementPage: React.FC = () => {
 
                     {/* Actions */}
                     <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => setSelectedBenchUser({ id: user.id, name: user.name })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBenchUser({ id: user.id, name: user.name });
+                          }}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="View Bench History"
                         >
                           <History className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleOpenEditModal(user)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditModal(user);
+                          }}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Edit User"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleToggleStatus(user)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(user);
+                          }}
                           disabled={togglingStatusId === user.id}
                           className={`p-1.5 rounded-lg transition-colors ${
                             user.status === 'active'
@@ -341,7 +353,10 @@ export const UserManagementPage: React.FC = () => {
                         </button>
                         {!user.roles?.includes('System Administrator') && (
                           <button
-                            onClick={() => setUserToDelete(user)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUserToDelete(user);
+                            }}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                             title="Delete User"
                           >

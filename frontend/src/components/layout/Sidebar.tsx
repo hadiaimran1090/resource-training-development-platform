@@ -110,7 +110,6 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Curriculum & Catalog',
     items: [
       { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
-      { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Assessments', path: '/regional-lead/assessments', icon: FileCheck },
     ],
@@ -197,7 +196,6 @@ const trainingManagerSidebar: NavSection[] = [
     title: 'Curriculum & Content',
     items: [
       { name: 'Training Catalog', path: '/training-manager/training-catalog', icon: GitBranch },
-      { name: 'Skills Catalog', path: '/training-manager/skills', icon: BookOpen },
       { name: 'Role Profiles', path: '/training-manager/role-profiles', icon: UserPlus },
       { name: 'Daily Activity Templates', path: '/training-manager/dashboard#templates', icon: Calendar },
       { name: 'Assessments', path: '/training-manager/assessments', icon: FileCheck },

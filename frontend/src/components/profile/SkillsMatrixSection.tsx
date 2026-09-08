@@ -38,7 +38,7 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Modal State
+  // Modal State (Add / Edit Skill Entry)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ResourceSkill | null>(null);
   const [formSkillId, setFormSkillId] = useState<number | ''>('');
@@ -47,15 +47,26 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   const [formSource, setFormSource] = useState<string>('self');
   const [formSubmitting, setFormSubmitting] = useState(false);
 
+  // Skill Request State (Propose New Skill)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestSkillName, setRequestSkillName] = useState('');
+  const [requestCategory, setRequestCategory] = useState<'technical' | 'secondary' | 'soft'>('technical');
+  const [requestJustification, setRequestJustification] = useState('');
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+
+  // Pending Requests State (For Regional Lead / Admin)
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
   const userRoles = user?.roles || (user?.role ? [user.role] : []);
   const isResourceUser = user?.id === resourceUserId;
   const isAdminOrTrainingManager = userRoles.some((r) =>
     ['System Administrator', 'Training Manager'].includes(r)
   );
-  const isRegionalLead = userRoles.includes('Regional Lead') && user?.regionId === resourceRegionId;
+  const isRegionalLead = userRoles.includes('Regional Lead');
   const isMentor = userRoles.includes('Mentor');
 
   const canEditAnySource = isAdminOrTrainingManager || isRegionalLead || isMentor;
+  const canApproveRequests = isAdminOrTrainingManager || isRegionalLead;
 
   const loadData = async () => {
     setLoading(true);
@@ -76,8 +87,72 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
         selectedRoleProfileId || undefined
       );
       setGapAnalysis(gapData);
+
+      if (canApproveRequests) {
+        try {
+          const reqs = await skillApi.getPendingSkillRequests();
+          setPendingRequests(reqs);
+        } catch (e) {
+          // ignore error if user does not have permission
+        }
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load skills matrix data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProposeSkill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestSkillName.trim()) {
+      setError('Please enter a skill name.');
+      return;
+    }
+
+    setRequestSubmitting(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      await skillApi.requestNewSkill({
+        skill_name: requestSkillName.trim(),
+        category: requestCategory,
+        justification: requestJustification.trim(),
+      });
+      setSuccessMsg(`Skill request for "${requestSkillName.trim()}" submitted for Regional Lead approval.`);
+      setIsRequestModalOpen(false);
+      setRequestSkillName('');
+      setRequestJustification('');
+      await loadData();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to submit skill request.');
+    } finally {
+      setRequestSubmitting(false);
+    }
+  };
+
+  const handleApproveSkillRequest = async (reqId: number, name: string) => {
+    try {
+      setLoading(true);
+      const res = await skillApi.approveSkillRequest(reqId);
+      setSuccessMsg(res.message || `Approved skill "${name}".`);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to approve skill request.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectSkillRequest = async (reqId: number, name: string) => {
+    try {
+      setLoading(true);
+      const res = await skillApi.rejectSkillRequest(reqId);
+      setSuccessMsg(res.message || `Rejected skill request "${name}".`);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to reject skill request.');
     } finally {
       setLoading(false);
     }
@@ -291,7 +366,15 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3.5 py-2 font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Skill</span>
+            <span>Add Existing Skill</span>
+          </button>
+
+          <button
+            onClick={() => setIsRequestModalOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3.5 py-2 font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Propose New Skill</span>
           </button>
         </div>
       </div>
@@ -549,6 +632,141 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
                   className="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-sm disabled:opacity-50"
                 >
                   {formSubmitting ? 'Saving...' : 'Save Skill Entry'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Skill Requests Approval Section (Regional Lead / Admin) */}
+      {canApproveRequests && pendingRequests.length > 0 && (
+        <div className="p-6 border-t border-slate-200 bg-purple-50/40">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <h3 className="font-extrabold text-sm text-slate-900">
+              Pending Skill Requests ({pendingRequests.length})
+            </h3>
+            <span className="text-xs text-slate-500 font-medium">— Requires Regional Lead Approval</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {pendingRequests.map((req) => (
+              <div key={req.id} className="p-4 bg-white rounded-xl border border-purple-200 shadow-2xs space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-xs">{req.skill_name}</h4>
+                    <p className="text-[11px] text-slate-500">
+                      Requested by <span className="font-bold text-slate-800">{req.requester_name}</span> ({req.region_name || 'Region'})
+                    </p>
+                  </div>
+                  {getCategoryBadge(req.category)}
+                </div>
+
+                {req.justification && (
+                  <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 italic">
+                    &quot;{req.justification}&quot;
+                  </p>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => handleRejectSkillRequest(req.id, req.skill_name)}
+                    className="px-3 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleApproveSkillRequest(req.id, req.skill_name)}
+                    className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-2xs"
+                  >
+                    Approve & Add Skill
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Propose Brand New Skill Modal */}
+      {isRequestModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Propose Brand New Skill
+              </h3>
+              <button
+                onClick={() => setIsRequestModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 font-medium">
+              Propose a new skill that does not exist in the skills catalog yet. Upon Regional Lead approval, it will be added to the master catalog and your skill matrix.
+            </p>
+
+            <form onSubmit={handleProposeSkill} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Proposed Skill Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kubernetes Cluster Ops, Rust, GraphQL"
+                  value={requestSkillName}
+                  onChange={(e) => setRequestSkillName(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Skill Category *
+                </label>
+                <select
+                  value={requestCategory}
+                  onChange={(e) => setRequestCategory(e.target.value as 'technical' | 'secondary' | 'soft')}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                >
+                  <option value="technical">Technical Skill</option>
+                  <option value="secondary">Secondary / Framework Skill</option>
+                  <option value="soft">Soft Skill / Leadership</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Justification / Notes (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Explain why this skill is needed for client projects or training tracks..."
+                  value={requestJustification}
+                  onChange={(e) => setRequestJustification(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsRequestModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestSubmitting}
+                  className="px-4 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {requestSubmitting ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
             </form>

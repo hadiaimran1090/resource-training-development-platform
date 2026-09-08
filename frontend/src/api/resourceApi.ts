@@ -6,6 +6,14 @@ export interface BenchRecord {
   startDate: string;
   endDate?: string | null;
   durationDays: number;
+  trainingHistory?: Array<{
+    id: number;
+    trackName: string;
+    status: string;
+    startDate: string;
+  }>;
+  assessmentAttemptsCount?: number;
+  readinessScore?: number;
 }
 
 export interface Assignment {
@@ -37,7 +45,7 @@ export interface ResourceProfile {
   regional_lead_name?: string | null;
   designation: string;
   experience_years: number;
-  current_status: 'assigned' | 'bench' | 'training';
+  current_status: 'assigned' | 'bench';
   created_at: string;
   updated_at: string;
   assignments?: Assignment[];

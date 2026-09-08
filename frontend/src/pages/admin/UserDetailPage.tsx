@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { UserDetail } from '../../api/userApi';
 import { userApi } from '../../api/userApi';
+import { SkillsMatrixSection } from '../../components/profile/SkillsMatrixSection';
 import {
   ArrowLeft,
   Loader2,
@@ -16,6 +17,11 @@ import {
   Phone,
   Mail,
   History,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
+  FileCheck,
+  Gauge,
 } from 'lucide-react';
 
 export const UserDetailPage: React.FC = () => {
@@ -27,6 +33,7 @@ export const UserDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('bench');
+  const [expandedBenchId, setExpandedBenchId] = useState<number | null>(null);
 
   const fetchUserDetail = async () => {
     if (!id) return;
@@ -36,6 +43,10 @@ export const UserDetailPage: React.FC = () => {
       const data = await userApi.getUserById(Number(id));
       setUser(data);
       setSelectedStatus(data.currentStatus || 'bench');
+      // Auto-expand first bench record if active
+      if (data.benchRecords && data.benchRecords.length > 0) {
+        setExpandedBenchId(data.benchRecords[0].id);
+      }
     } catch (err: any) {
       console.error('Fetch user detail error:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load user profile.');
@@ -215,7 +226,7 @@ export const UserDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Info Card 3: Admin Status Management */}
+        {/* Info Card 3: Admin Status Management (Restricted to Exactly 2 Choices: Bench / Assigned to Project) */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
             <Clock className="w-4 h-4 text-blue-600" />
@@ -234,9 +245,8 @@ export const UserDetailPage: React.FC = () => {
                 disabled={statusUpdating}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="bench">Available on Bench</option>
-                <option value="assigned">Assigned to Client Project</option>
-                <option value="training">Active in Training Track</option>
+                <option value="bench">Bench</option>
+                <option value="assigned">Assigned to Project</option>
               </select>
             </div>
 
@@ -250,12 +260,12 @@ export const UserDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Bench History Section */}
+      {/* Expandable Bench History Section */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5 text-blue-600" />
-            <h3 className="font-extrabold text-base text-slate-900">Bench History Timeline</h3>
+            <h3 className="font-extrabold text-base text-slate-900">Bench History & Period Breakdown</h3>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700">
             Total: {user.maxBenchDays || 0} Days
@@ -267,33 +277,137 @@ export const UserDetailPage: React.FC = () => {
             No bench history periods recorded for this user account.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {benchRecords.map((record) => (
-              <div
-                key={record.id}
-                className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-start justify-between gap-3 text-xs hover:border-blue-300 transition-colors"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 font-bold text-slate-900">
-                    <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>
-                      {new Date(record.startDate).toLocaleDateString()} —{' '}
-                      {record.endDate ? new Date(record.endDate).toLocaleDateString() : 'Present (Active Bench)'}
-                    </span>
-                  </div>
-                  <p className="text-slate-500 font-medium">Bench period</p>
-                </div>
+          <div className="space-y-3">
+            {benchRecords.map((record) => {
+              const isExpanded = expandedBenchId === record.id;
+              const isOngoing = !record.endDate;
 
-                <div className="shrink-0 text-right">
-                  <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-800">
-                    {record.durationDays} Days
-                  </span>
+              return (
+                <div
+                  key={record.id}
+                  className={`rounded-xl border transition-all overflow-hidden ${
+                    isExpanded ? 'border-blue-300 bg-blue-50/20 shadow-xs' : 'border-slate-200/80 bg-slate-50/80 hover:border-slate-300'
+                  }`}
+                >
+                  {/* Bench Period Header */}
+                  <div
+                    onClick={() => setExpandedBenchId(isExpanded ? null : record.id)}
+                    className="p-4 flex items-center justify-between cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isOngoing ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 font-black text-slate-900 text-xs">
+                          <span>
+                            {new Date(record.startDate).toLocaleDateString()} —{' '}
+                            {record.endDate ? new Date(record.endDate).toLocaleDateString() : 'Ongoing (Active Bench)'}
+                          </span>
+                          {isOngoing && (
+                            <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          Duration: <strong className="text-slate-800">{record.durationDays} Days</strong> • Click to {isExpanded ? 'collapse' : 'expand'} period metrics
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-800">
+                        {record.durationDays} Days
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </div>
+                  </div>
+
+                  {/* Expanded Bench Details */}
+                  {isExpanded && (
+                    <div className="p-4 pt-0 border-t border-blue-100 space-y-4 mt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        {/* Metric 1: Readiness Score */}
+                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+                            <Gauge className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Readiness Score</span>
+                          </div>
+                          <div className="text-lg font-black text-slate-900">
+                            {record.readinessScore || 75}%
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">As of current bench period</p>
+                        </div>
+
+                        {/* Metric 2: Assessment Attempts */}
+                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+                            <FileCheck className="w-3.5 h-3.5 text-purple-600" />
+                            <span>Assessment Attempts</span>
+                          </div>
+                          <div className="text-lg font-black text-slate-900">
+                            {record.assessmentAttemptsCount || 0} Attempts
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">Taken during this bench period</p>
+                        </div>
+
+                        {/* Metric 3: Training Assignments */}
+                        <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+                            <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Training Assignments</span>
+                          </div>
+                          <div className="text-lg font-black text-slate-900">
+                            {record.trainingHistory ? record.trainingHistory.length : 0} Tracks
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">Assigned during bench period</p>
+                        </div>
+                      </div>
+
+                      {/* Training History List */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Training History for this Bench Period</span>
+                        </h4>
+
+                        {!record.trainingHistory || record.trainingHistory.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic bg-white p-3 rounded-lg border border-slate-100">
+                            No training assignments recorded during this specific bench period.
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {record.trainingHistory.map((th) => (
+                              <div key={th.id} className="p-2.5 bg-white rounded-lg border border-slate-200/80 flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="font-bold text-slate-900">{th.trackName}</span>
+                                  <span className="text-[10px] text-slate-400 ml-2">Started: {new Date(th.startDate).toLocaleDateString()}</span>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${th.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                                  {th.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Combined Skills Matrix Section (My Skills + Target Role Required Skills) */}
+      <SkillsMatrixSection
+        resourceId={user.id}
+        resourceUserId={user.id}
+        resourceRegionId={user.regionId}
+      />
     </div>
   );
 };
+

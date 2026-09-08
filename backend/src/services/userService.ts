@@ -135,13 +135,74 @@ export class UserService {
     `;
 
     const result = await pool.query(query, [userId]);
-    const benchRecords: BenchRecordDTO[] = result.rows.map((row) => ({
-      id: row.id,
-      userId: row.userId,
-      startDate: new Date(row.startDate).toISOString().split('T')[0],
-      endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : null,
-      durationDays: row.durationDays,
-    }));
+
+    // Fetch resource ID for user
+    const resRow = await pool.query(`SELECT id FROM resources WHERE user_id = $1`, [userId]);
+    const resourceId = resRow.rows[0]?.id;
+
+    // Calculate readiness score
+    let overallReadinessScore = 75;
+    if (resourceId) {
+      const skillsRes = await pool.query(
+        `SELECT AVG(current_level) as avg_level FROM resource_skills WHERE resource_id = $1`,
+        [resourceId]
+      );
+      if (skillsRes.rows[0]?.avg_level) {
+        overallReadinessScore = Math.round((parseFloat(skillsRes.rows[0].avg_level) / 5.0) * 100);
+      }
+    }
+
+    const benchRecords: BenchRecordDTO[] = [];
+
+    for (const row of result.rows) {
+      const sDate = new Date(row.startDate).toISOString().split('T')[0];
+      const eDate = row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : null;
+
+      let trainingHistory: Array<{ id: number; trackName: string; status: string; startDate: string }> = [];
+      let assessmentAttemptsCount = 0;
+
+      if (resourceId) {
+        // Query training assignments active/created during bench period
+        const taQuery = `
+          SELECT ta.id, ta.status, ta.start_date as "startDate", tt.name as "trackName"
+          FROM training_assignments ta
+          INNER JOIN training_tracks tt ON ta.track_id = tt.id
+          WHERE ta.resource_id = $1
+            AND ta.start_date >= $2
+            AND ($3::date IS NULL OR ta.start_date <= $3::date)
+          ORDER BY ta.start_date DESC
+        `;
+        const taRes = await pool.query(taQuery, [resourceId, sDate, eDate]);
+        trainingHistory = taRes.rows.map((t) => ({
+          id: t.id,
+          trackName: t.trackName,
+          status: t.status,
+          startDate: new Date(t.startDate).toISOString().split('T')[0],
+        }));
+
+        // Query assessment attempts count during bench period
+        const aaQuery = `
+          SELECT COUNT(*)::int as count
+          FROM assessment_attempts aa
+          WHERE aa.resource_id = $1
+            AND aa.started_at >= $2::date
+            AND ($3::date IS NULL OR aa.started_at <= ($3::date + INTERVAL '1 day'))
+        `;
+        const aaRes = await pool.query(aaQuery, [resourceId, sDate, eDate]);
+        assessmentAttemptsCount = aaRes.rows[0]?.count || 0;
+      }
+
+      benchRecords.push({
+        id: row.id,
+        userId: row.userId,
+        startDate: sDate,
+        endDate: eDate,
+        durationDays: row.durationDays,
+        trainingHistory,
+        assessmentAttemptsCount,
+        readinessScore: overallReadinessScore,
+      });
+    }
 
     const totalBenchDays = benchRecords.reduce((sum, r) => sum + (r.durationDays || 0), 0);
 

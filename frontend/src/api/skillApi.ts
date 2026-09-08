@@ -7,6 +7,23 @@ import type {
   SkillGapItem,
 } from '../types/skill';
 
+export interface SkillRequest {
+  id: number;
+  requested_by: number;
+  skill_name: string;
+  category: 'technical' | 'secondary' | 'soft';
+  justification?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  reviewed_at?: string | null;
+  requester_name?: string;
+  requester_email?: string;
+  requester_employee_id?: string;
+  region_name?: string;
+  practice_name?: string;
+  reviewer_name?: string;
+}
+
 export const skillApi = {
   // 1. Skills Catalog APIs
   getSkills: async (category?: string): Promise<Skill[]> => {
@@ -28,6 +45,38 @@ export const skillApi = {
 
   deleteSkill: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete<{ message: string }>(`/skills/${id}`);
+    return response.data;
+  },
+
+  // 1b. Skill Requests APIs (New Skill Approval Workflow)
+  requestNewSkill: async (data: {
+    skill_name: string;
+    category: string;
+    justification?: string;
+  }): Promise<SkillRequest> => {
+    const response = await apiClient.post<SkillRequest>('/skills/requests', data);
+    return response.data;
+  },
+
+  getPendingSkillRequests: async (): Promise<SkillRequest[]> => {
+    const response = await apiClient.get<SkillRequest[]>('/skills/requests/pending');
+    return response.data;
+  },
+
+  getMySkillRequests: async (): Promise<SkillRequest[]> => {
+    const response = await apiClient.get<SkillRequest[]>('/skills/requests/my');
+    return response.data;
+  },
+
+  approveSkillRequest: async (id: number): Promise<{ message: string; skillId?: number }> => {
+    const response = await apiClient.put<{ message: string; skillId?: number }>(
+      `/skills/requests/${id}/approve`
+    );
+    return response.data;
+  },
+
+  rejectSkillRequest: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.put<{ message: string }>(`/skills/requests/${id}/reject`);
     return response.data;
   },
 
@@ -133,3 +182,4 @@ export const skillApi = {
     return response.data;
   },
 };
+

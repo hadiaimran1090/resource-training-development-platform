@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS resources (
     phone_number VARCHAR(30),
     designation VARCHAR(100) NOT NULL DEFAULT 'Engineering Resource',
     experience_years NUMERIC(4,1) DEFAULT 1.0,
-    current_status VARCHAR(30) DEFAULT 'bench' CHECK (current_status IN ('assigned', 'bench', 'training')),
+    current_status VARCHAR(30) DEFAULT 'bench' CHECK (current_status IN ('assigned', 'bench')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -363,3 +363,19 @@ CREATE INDEX IF NOT EXISTS idx_assessment_attempts_assessment ON assessment_atte
 CREATE INDEX IF NOT EXISTS idx_assessment_attempts_resource ON assessment_attempts(resource_id);
 CREATE INDEX IF NOT EXISTS idx_assessment_answers_attempt ON assessment_answers(attempt_id);
 CREATE INDEX IF NOT EXISTS idx_assessment_answers_question ON assessment_answers(question_id);
+
+-- 26. Create Skill Requests Table (Propose New Skill Workflow)
+CREATE TABLE IF NOT EXISTS skill_requests (
+    id SERIAL PRIMARY KEY,
+    requested_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    skill_name VARCHAR(150) NOT NULL,
+    category VARCHAR(30) NOT NULL CHECK (category IN ('technical', 'secondary', 'soft')),
+    justification TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by INT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_skill_requests_requested_by ON skill_requests(requested_by);
+CREATE INDEX IF NOT EXISTS idx_skill_requests_status ON skill_requests(status);

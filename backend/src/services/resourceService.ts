@@ -9,7 +9,7 @@ export interface ResourceData {
   phone_number?: string | null;
   designation: string;
   experience_years?: number;
-  current_status?: 'assigned' | 'bench' | 'training';
+  current_status?: 'assigned' | 'bench';
 }
 
 export class ResourceService {

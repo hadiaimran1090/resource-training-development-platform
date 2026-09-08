@@ -4,6 +4,14 @@ export interface BenchRecordDTO {
   startDate: string;
   endDate: string | null;
   durationDays: number;
+  trainingHistory?: Array<{
+    id: number;
+    trackName: string;
+    status: string;
+    startDate: string;
+  }>;
+  assessmentAttemptsCount?: number;
+  readinessScore?: number;
 }
 
 export interface UserDetailDTO {

@@ -126,13 +126,24 @@ export const RoleProfilesPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Role Profile</span>
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => navigate('/admin/skills')}
+            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs px-4 py-2.5 rounded-xl shadow-2xs transition-all flex items-center gap-2"
+            title="Add or edit master catalog skills (e.g., Kubernetes)"
+          >
+            <BookOpen className="w-4 h-4 text-purple-600" />
+            <span>Master Skills Catalog</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddModal}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Role Profile</span>
+          </button>
+        </div>
       </div>
 
       {/* Alerts */}
