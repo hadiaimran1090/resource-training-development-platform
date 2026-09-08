@@ -11,13 +11,27 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadsDir = path.join(process.cwd(), 'uploads/certificates');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+import os from 'os';
+
+const uploadsDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads', 'certificates')
+  : path.join(process.cwd(), 'uploads', 'certificates');
+
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err: any) {
+  console.warn('[Uploads] Directory creation warning:', err?.message || err);
 }
 
 const storage = multer.diskStorage({
   destination: (_req: any, _file: any, cb: any) => {
+    try {
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+    } catch {}
     cb(null, uploadsDir);
   },
   filename: (_req: any, file: any, cb: any) => {
