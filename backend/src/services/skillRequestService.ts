@@ -40,7 +40,10 @@ export class SkillRequestService {
     );
 
     if (existingReq.rows.length > 0) {
-      throw new Error(`You already have a pending request for "${trimmedName}".`);
+      // Recover requests created before a notification failure and avoid making the
+      // requester resubmit manually.
+      await this.notifyRegionalLeads(existingReq.rows[0].id, trimmedName, requested_by);
+      return existingReq.rows[0];
     }
 
     const query = `
@@ -56,35 +59,67 @@ export class SkillRequestService {
       justification ? justification.trim() : null,
     ]);
 
-    return result.rows[0];
+    const request = result.rows[0];
+
+    await this.notifyRegionalLeads(request.id, trimmedName, requested_by);
+
+    return request;
+  }
+
+  private static async notifyRegionalLeads(requestId: number, skillName: string, requesterUserId: number) {
+    // Notify every Regional Lead assigned to the requester's region. The guard
+    // makes re-submission safe and prevents duplicate notifications.
+    await pool.query(
+      `INSERT INTO notifications (user_id, type, message, related_entity_type, related_entity_id)
+       SELECT DISTINCT lead.id, 'skill_request', $1, 'skill_request', $2::integer
+       FROM users requester
+       LEFT JOIN resources requester_resource ON requester_resource.user_id = requester.id
+       INNER JOIN users lead ON lead.region_id = COALESCE(requester_resource.region_id, requester.region_id)
+       INNER JOIN user_roles ur ON ur.user_id = lead.id
+       INNER JOIN roles role ON role.id = ur.role_id AND role.name = 'Regional Lead'
+       WHERE requester.id = $3
+         AND NOT EXISTS (
+           SELECT 1 FROM notifications existing
+           WHERE existing.user_id = lead.id
+             AND existing.related_entity_type = 'skill_request'
+             AND existing.related_entity_id = $2::integer
+         )`,
+      [`New skill proposal: ${skillName}`, requestId, requesterUserId]
+    );
   }
 
   /**
-   * Fetch pending skill requests for Regional Lead / Admin
+   * Fetch pending skill requests for the Regional Lead's own region.
    */
-  static async getPendingRequests(reviewerUserId: number, isSystemAdmin: boolean = false) {
+  static async getPendingRequests(reviewerUserId: number) {
     let query = `
       SELECT sr.id, sr.requested_by, sr.skill_name, sr.category, sr.justification, sr.status, sr.created_at,
              u.name as requester_name, u.email as requester_email, u.employee_id as requester_employee_id,
              reg.name as region_name, prac.name as practice_name
       FROM skill_requests sr
       INNER JOIN users u ON sr.requested_by = u.id
-      LEFT JOIN regions reg ON u.region_id = reg.id
+      LEFT JOIN resources requester_resource ON requester_resource.user_id = u.id
+      LEFT JOIN regions reg ON reg.id = COALESCE(requester_resource.region_id, u.region_id)
       LEFT JOIN practices prac ON u.practice_id = prac.id
       WHERE sr.status = 'pending'
     `;
 
     const queryParams: any[] = [];
 
-    if (!isSystemAdmin) {
-      // Filter by Regional Lead's region
-      const leadRegionRes = await pool.query(`SELECT region_id FROM users WHERE id = $1`, [reviewerUserId]);
-      const leadRegionId = leadRegionRes.rows[0]?.region_id;
+    // Filter by Regional Lead's region.
+    const leadRegionRes = await pool.query(
+      `SELECT COALESCE(r.region_id, u.region_id) AS region_id
+       FROM users u LEFT JOIN resources r ON r.user_id = u.id WHERE u.id = $1`,
+      [reviewerUserId]
+    );
+    const leadRegionId = leadRegionRes.rows[0]?.region_id;
 
-      if (leadRegionId) {
-        queryParams.push(leadRegionId);
-        query += ` AND u.region_id = $${queryParams.length}`;
-      }
+    if (leadRegionId) {
+      queryParams.push(leadRegionId);
+      query += ` AND COALESCE(requester_resource.region_id, u.region_id) = $${queryParams.length}`;
+    } else {
+      // A lead without a region must not see every pending request.
+      query += ` AND FALSE`;
     }
 
     query += ` ORDER BY sr.created_at DESC`;
@@ -122,6 +157,14 @@ export class SkillRequestService {
     if (req.status !== 'pending') {
       throw new Error(`Skill request is already ${req.status}.`);
     }
+
+    await this.assertReviewerSharesRequesterRegion(req.requested_by, reviewerUserId);
+
+    await pool.query(
+      `UPDATE notifications SET is_read = TRUE
+       WHERE user_id = $1 AND related_entity_type = 'skill_request' AND related_entity_id = $2`,
+      [reviewerUserId, requestId]
+    );
 
     // 1. Insert or find skill in master catalog
     const skillInsert = await pool.query(
@@ -190,6 +233,14 @@ export class SkillRequestService {
       throw new Error(`Skill request is already ${req.status}.`);
     }
 
+    await this.assertReviewerSharesRequesterRegion(req.requested_by, reviewerUserId);
+
+    await pool.query(
+      `UPDATE notifications SET is_read = TRUE
+       WHERE user_id = $1 AND related_entity_type = 'skill_request' AND related_entity_id = $2`,
+      [reviewerUserId, requestId]
+    );
+
     await pool.query(
       `UPDATE skill_requests
        SET status = 'rejected', reviewed_by = $1, reviewed_at = CURRENT_TIMESTAMP
@@ -205,5 +256,21 @@ export class SkillRequestService {
     );
 
     return { message: `Skill request for "${req.skill_name}" was rejected.` };
+  }
+
+  private static async assertReviewerSharesRequesterRegion(requesterUserId: number, reviewerUserId: number) {
+    const result = await pool.query(
+      `SELECT u.id, COALESCE(r.region_id, u.region_id) AS region_id
+       FROM users u LEFT JOIN resources r ON r.user_id = u.id
+       WHERE u.id = ANY($1::int[])`,
+      [[requesterUserId, reviewerUserId]]
+    );
+    const usersById = new Map(result.rows.map((user) => [user.id, user]));
+    const requester = usersById.get(requesterUserId);
+    const reviewer = usersById.get(reviewerUserId);
+
+    if (!requester || !reviewer || !reviewer.region_id || requester.region_id !== reviewer.region_id) {
+      throw new Error('You can only review skill requests from resources in your own region.');
+    }
   }
 }

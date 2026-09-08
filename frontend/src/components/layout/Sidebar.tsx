@@ -79,7 +79,6 @@ const resourceSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/profile', icon: User },
-      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'Certifications', path: '/resource/dashboard#certifications', icon: CheckCircle },
       { name: 'Interview History', path: '/resource/dashboard#interview-history', icon: History },
       { name: 'My Readiness Score', path: '/resource/dashboard#readiness', icon: Gauge },
@@ -101,7 +100,7 @@ const regionalLeadSidebar: NavSection[] = [
       { name: 'Training Assignments', path: '/regional-lead/training-assignments', icon: BookOpen },
       { name: 'Client Assignments', path: '/regional-lead/assignments', icon: Briefcase },
       { name: 'Bench Overview', path: '/regional-lead/dashboard#bench-overview', icon: Armchair },
-      { name: 'Resources', path: '/regional-lead/dashboard#resources', icon: Users },
+      { name: 'Resources', path: '/regional-lead/resources', icon: Users },
       { name: 'Development Plans (approve)', path: '/regional-lead/dashboard#dev-plans', icon: CheckSquare },
       { name: 'Interviews', path: '/regional-lead/dashboard#interviews', icon: Video },
     ],
@@ -118,14 +117,13 @@ const regionalLeadSidebar: NavSection[] = [
     title: 'Career & Profile',
     items: [
       { name: 'My Profile', path: '/profile', icon: User },
-      { name: 'My Skills', path: '/skills', icon: Award },
     ],
   },
   {
     title: 'Alerts & System',
     items: [
       { name: 'At-Risk Resources', path: '/regional-lead/dashboard#at-risk', icon: AlertTriangle },
-      { name: 'Notifications', path: '/regional-lead/dashboard#notifications', icon: Bell },
+      { name: 'Notifications', path: '/regional-lead/notifications', icon: Bell },
     ],
   },
 ];
@@ -137,7 +135,6 @@ const practiceLeadSidebar: NavSection[] = [
     items: [
       { name: 'Practice Lead Dashboard', path: '/practice-lead/dashboard', icon: LayoutDashboard },
       { name: 'Org Bench Overview', path: '/practice-lead/dashboard#bench-overview', icon: Armchair },
-      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -188,7 +185,6 @@ const trainingManagerSidebar: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Training Manager Dashboard', path: '/training-manager/dashboard', icon: LayoutDashboard },
-      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -217,7 +213,6 @@ const mentorSidebar: NavSection[] = [
     items: [
       { name: 'Mentor / SME Dashboard', path: '/mentor/dashboard', icon: LayoutDashboard },
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
-      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },
@@ -240,7 +235,6 @@ const managementSidebar: NavSection[] = [
     items: [
       { name: 'Management Dashboard', path: '/management/dashboard', icon: LayoutDashboard },
       { name: 'Training Catalog', path: '/training-catalog', icon: GitBranch },
-      { name: 'My Skills', path: '/skills', icon: Award },
       { name: 'My Profile', path: '/profile', icon: User },
     ],
   },

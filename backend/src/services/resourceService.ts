@@ -13,7 +13,7 @@ export interface ResourceData {
 }
 
 export class ResourceService {
-  static async getAllResources() {
+  static async getAllResources(regionId?: number | null) {
     const query = `
       SELECT DISTINCT ON (r.id)
              r.id, r.user_id, r.phone_number, r.designation, r.experience_years, r.current_status, r.created_at, r.updated_at,
@@ -29,9 +29,10 @@ export class ResourceService {
       LEFT JOIN regions reg ON r.region_id = reg.id
       LEFT JOIN practices prac ON r.practice_id = prac.id
       LEFT JOIN users lead ON r.regional_lead_id = lead.id
+      ${regionId !== undefined ? 'WHERE r.region_id = $1' : ''}
       ORDER BY r.id ASC, u.name ASC
     `;
-    const result = await pool.query(query);
+    const result = await pool.query(query, regionId !== undefined ? [regionId] : []);
     return result.rows;
   }
 

@@ -379,3 +379,18 @@ CREATE TABLE IF NOT EXISTS skill_requests (
 
 CREATE INDEX IF NOT EXISTS idx_skill_requests_requested_by ON skill_requests(requested_by);
 CREATE INDEX IF NOT EXISTS idx_skill_requests_status ON skill_requests(status);
+
+-- 27. Notifications (for approval workflows and user alerts)
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    message VARCHAR(300) NOT NULL,
+    related_entity_type VARCHAR(50),
+    related_entity_id INT,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_entity ON notifications(related_entity_type, related_entity_id);

@@ -14,6 +14,7 @@ import trainingAssignmentRoutes from './routes/trainingAssignmentRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import assessmentRoutes from './routes/assessmentRoutes.js';
 import skillRequestRoutes from './routes/skillRequestRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 const app = express();
@@ -77,6 +78,7 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/skills', skillRequestRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/role-profiles', roleProfileRoutes);
 app.use('/api', trainingCatalogRoutes);
 app.use('/api', trainingAssignmentRoutes);

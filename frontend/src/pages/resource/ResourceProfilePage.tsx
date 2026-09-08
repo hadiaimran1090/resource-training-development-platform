@@ -30,7 +30,6 @@ import {
   BookOpen,
   FileCheck,
   Gauge,
-  Sparkles,
 } from 'lucide-react';
 
 export const ResourceProfilePage: React.FC = () => {

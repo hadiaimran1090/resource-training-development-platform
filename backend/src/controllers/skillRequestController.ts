@@ -27,15 +27,12 @@ export const createSkillRequest = async (req: AuthRequest, res: Response): Promi
 export const getPendingSkillRequests = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
-    const userRoles = req.user?.roles || (req.user?.role ? [req.user.role] : []);
-    const isSystemAdmin = userRoles.includes('System Administrator');
-
     if (!userId) {
       res.status(401).json({ message: 'Unauthorized.' });
       return;
     }
 
-    const requests = await SkillRequestService.getPendingRequests(userId, isSystemAdmin);
+    const requests = await SkillRequestService.getPendingRequests(userId);
     res.status(200).json(requests);
   } catch (error: any) {
     res.status(500).json({ message: 'Failed to fetch pending skill requests.' });

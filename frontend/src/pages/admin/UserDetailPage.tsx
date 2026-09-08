@@ -107,11 +107,11 @@ export const UserDetailPage: React.FC = () => {
       {/* Top Header Navigation */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => navigate('/admin/users')}
+          onClick={() => navigate(-1)}
           className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-2 transition shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to User Management</span>
+          <span>Back</span>
         </button>
       </div>
 

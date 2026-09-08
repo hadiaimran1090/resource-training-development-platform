@@ -25,6 +25,9 @@ import { ResourceProfilePage } from '../pages/resource/ResourceProfilePage';
 import { MySkillsPage } from '../pages/resource/MySkillsPage';
 import { AssignmentManagementPage } from '../pages/regional-lead/AssignmentManagementPage';
 import { TrainingAssignmentsPage } from '../pages/regional-lead/TrainingAssignmentsPage';
+import { RegionalLeadResourcesPage } from '../pages/regional-lead/RegionalLeadResourcesPage';
+import { RegionalLeadResourceDetailPage } from '../pages/regional-lead/RegionalLeadResourceDetailPage';
+import { RegionalLeadNotificationsPage } from '../pages/regional-lead/RegionalLeadNotificationsPage';
 import { TodaysActivitiesPage } from '../pages/resource/TodaysActivitiesPage';
 import { MyTrainingPlanPage } from '../pages/resource/MyTrainingPlanPage';
 import { AssessmentManagementPage } from '../pages/training-manager/AssessmentManagementPage';
@@ -120,7 +123,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/admin/users/:id"
           element={
-            <RequireRole allowedRoles={['System Administrator']}>
+            <RequireRole allowedRoles={['System Administrator', 'Regional Lead', 'Training Manager', 'Practice Lead']}>
               <UserDetailPage />
             </RequireRole>
           }
@@ -306,6 +309,30 @@ const ProtectedLayout: React.FC = () => {
           }
         />
         <Route
+          path="/regional-lead/resources"
+          element={
+            <RequireRole allowedRoles={['Regional Lead']}>
+              <RegionalLeadResourcesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/resources/:resourceId"
+          element={
+            <RequireRole allowedRoles={['Regional Lead']}>
+              <RegionalLeadResourceDetailPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/regional-lead/notifications"
+          element={
+            <RequireRole allowedRoles={['Regional Lead']}>
+              <RegionalLeadNotificationsPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="/mentor/dashboard"
           element={
             <RequireRole allowedRoles={['Mentor']}>
@@ -329,9 +356,16 @@ const ProtectedLayout: React.FC = () => {
             </RequireRole>
           }
         />
-        <Route path="/skills" element={<MySkillsPage />} />
-        <Route path="/my-skills" element={<MySkillsPage />} />
-        <Route path="/resource/skills" element={<MySkillsPage />} />
+        <Route
+          path="/skills"
+          element={
+            <RequireRole allowedRoles={['System Administrator']}>
+              <MySkillsPage />
+            </RequireRole>
+          }
+        />
+        <Route path="/my-skills" element={<Navigate to="/profile" replace />} />
+        <Route path="/resource/skills" element={<Navigate to="/profile" replace />} />
         <Route path="/profile" element={<ResourceProfilePage />} />
         <Route path="/resource/profile" element={<ResourceProfilePage />} />
         <Route path="/admin/profile" element={<ResourceProfilePage />} />
@@ -352,4 +386,3 @@ export const AppRoutes: React.FC = () => {
     </Routes>
   );
 };
-

@@ -25,7 +25,6 @@ interface SkillsMatrixSectionProps {
 export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   resourceId,
   resourceUserId,
-  resourceRegionId,
 }) => {
   const { user } = useAuth();
   const [skillsMatrix, setSkillsMatrix] = useState<ResourceSkill[]>([]);
@@ -54,7 +53,7 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   const [requestJustification, setRequestJustification] = useState('');
   const [requestSubmitting, setRequestSubmitting] = useState(false);
 
-  // Pending Requests State (For Regional Lead / Admin)
+  // Skill-request decisions are handled from the Regional Lead notifications page.
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
   const userRoles = user?.roles || (user?.role ? [user.role] : []);
@@ -66,7 +65,7 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   const isMentor = userRoles.includes('Mentor');
 
   const canEditAnySource = isAdminOrTrainingManager || isRegionalLead || isMentor;
-  const canApproveRequests = isAdminOrTrainingManager || isRegionalLead;
+  const canApproveRequests = false;
 
   const loadData = async () => {
     setLoading(true);
@@ -88,14 +87,9 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
       );
       setGapAnalysis(gapData);
 
-      if (canApproveRequests) {
-        try {
-          const reqs = await skillApi.getPendingSkillRequests();
-          setPendingRequests(reqs);
-        } catch (e) {
-          // ignore error if user does not have permission
-        }
-      }
+      // Kept empty here; approval actions are shown only in Notifications.
+      setPendingRequests([]);
+
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load skills matrix data.');
     } finally {
@@ -133,29 +127,13 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
   };
 
   const handleApproveSkillRequest = async (reqId: number, name: string) => {
-    try {
-      setLoading(true);
-      const res = await skillApi.approveSkillRequest(reqId);
-      setSuccessMsg(res.message || `Approved skill "${name}".`);
-      await loadData();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to approve skill request.');
-    } finally {
-      setLoading(false);
-    }
+    await skillApi.approveSkillRequest(reqId);
+    setSuccessMsg(`Approved skill "${name}".`);
   };
 
   const handleRejectSkillRequest = async (reqId: number, name: string) => {
-    try {
-      setLoading(true);
-      const res = await skillApi.rejectSkillRequest(reqId);
-      setSuccessMsg(res.message || `Rejected skill request "${name}".`);
-      await loadData();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to reject skill request.');
-    } finally {
-      setLoading(false);
-    }
+    await skillApi.rejectSkillRequest(reqId);
+    setSuccessMsg(`Rejected skill request "${name}".`);
   };
 
   useEffect(() => {
@@ -640,18 +618,20 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
       )}
 
       {/* Pending Skill Requests Approval Section (Regional Lead / Admin) */}
-      {canApproveRequests && pendingRequests.length > 0 && (
+      {canApproveRequests && pendingRequests.filter((request) => request.requested_by === resourceUserId).length > 0 && (
         <div className="p-6 border-t border-slate-200 bg-purple-50/40">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-600" />
             <h3 className="font-extrabold text-sm text-slate-900">
-              Pending Skill Requests ({pendingRequests.length})
+              Pending Skill Requests ({pendingRequests.filter((request) => request.requested_by === resourceUserId).length})
             </h3>
             <span className="text-xs text-slate-500 font-medium">— Requires Regional Lead Approval</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pendingRequests.map((req) => (
+            {pendingRequests
+              .filter((request) => request.requested_by === resourceUserId)
+              .map((req) => (
               <div key={req.id} className="p-4 bg-white rounded-xl border border-purple-200 shadow-2xs space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
@@ -684,7 +664,7 @@ export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({
                   </button>
                 </div>
               </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

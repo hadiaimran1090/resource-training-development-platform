@@ -63,7 +63,7 @@ export interface CreateResourceData {
   regional_lead_id?: number | null;
   designation: string;
   experience_years?: number;
-  current_status?: 'assigned' | 'bench' | 'training';
+  current_status?: 'assigned' | 'bench';
 }
 
 export interface UpdateResourceData {
@@ -73,7 +73,7 @@ export interface UpdateResourceData {
   phone_number?: string | null;
   designation?: string;
   experience_years?: number;
-  current_status?: 'assigned' | 'bench' | 'training';
+  current_status?: 'assigned' | 'bench';
 }
 
 export const resourceApi = {
@@ -97,7 +97,7 @@ export const resourceApi = {
   },
 
   updateMyProfile: async (data: {
-    current_status?: 'assigned' | 'bench' | 'training';
+    current_status?: 'assigned' | 'bench';
     phone_number?: string;
     designation?: string;
     experience_years?: number;

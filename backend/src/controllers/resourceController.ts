@@ -4,9 +4,11 @@ import { AuthRequest } from '../middleware/authMiddleware.js';
 import { ResourceService } from '../services/resourceService.js';
 import { UserService } from '../services/userService.js';
 
-export const getResources = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getResources = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const resources = await ResourceService.getAllResources();
+    const userRoles = req.user?.roles || (req.user?.role ? [req.user.role] : []);
+    const regionId = userRoles.includes('Regional Lead') ? (req.user?.regionId ?? -1) : undefined;
+    const resources = await ResourceService.getAllResources(regionId);
     res.status(200).json(resources);
   } catch (error: any) {
     console.error('Error fetching resources:', error);
@@ -20,6 +22,11 @@ export const getResourceById = async (req: AuthRequest, res: Response): Promise<
     const resource = await ResourceService.getResourceById(Number(id));
     if (!resource) {
       res.status(404).json({ message: 'Resource profile not found.' });
+      return;
+    }
+    const userRoles = req.user?.roles || (req.user?.role ? [req.user.role] : []);
+    if (userRoles.includes('Regional Lead') && resource.region_id !== req.user?.regionId) {
+      res.status(403).json({ message: 'Regional Leads can only view resources in their assigned region.' });
       return;
     }
     res.status(200).json(resource);
