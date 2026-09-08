@@ -252,6 +252,29 @@ export const migrateLocalToNeon = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS skill_requests (
+        id SERIAL PRIMARY KEY,
+        requested_by INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        skill_name VARCHAR(150) NOT NULL,
+        category VARCHAR(30) NOT NULL CHECK (category IN ('technical', 'secondary', 'soft')),
+        justification TEXT,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+        reviewed_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL,
+        message VARCHAR(300) NOT NULL,
+        related_entity_type VARCHAR(50),
+        related_entity_id INT,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS assessments (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -311,12 +334,18 @@ export const migrateLocalToNeon = async () => {
       CREATE INDEX IF NOT EXISTS idx_assessment_attempts_assessment ON assessment_attempts(assessment_id);
       CREATE INDEX IF NOT EXISTS idx_assessment_attempts_resource ON assessment_attempts(resource_id);
       CREATE INDEX IF NOT EXISTS idx_assessment_answers_attempt ON assessment_answers(attempt_id);
+      CREATE INDEX IF NOT EXISTS idx_skill_requests_requested_by ON skill_requests(requested_by);
+      CREATE INDEX IF NOT EXISTS idx_skill_requests_status ON skill_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_notifications_entity ON notifications(related_entity_type, related_entity_id);
     `);
 
     // Clean sync: Truncate Neon tables to mirror Local PostgreSQL cleanly
     console.log('Truncating existing Neon tables for clean mirror sync...');
     await neonClient.query(`
       TRUNCATE TABLE
+        notifications,
+        skill_requests,
         assessment_answers,
         assessment_attempts,
         assessment_questions,
@@ -686,7 +715,34 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${alRes.rows.length} audit_logs.`);
     await neonClient.query(`SELECT setval('audit_logs_id_seq', (SELECT COALESCE(MAX(id), 1) FROM audit_logs))`);
 
-    // 21. Assessments
+    // 21. Skill Requests
+    const skillRequestsRes = await localClient.query(`SELECT * FROM skill_requests ORDER BY id`);
+    for (const request of skillRequestsRes.rows) {
+      if (!validUserIds.has(request.requested_by)) continue;
+      const reviewedBy = request.reviewed_by && validUserIds.has(request.reviewed_by) ? request.reviewed_by : null;
+      await neonClient.query(
+        `INSERT INTO skill_requests (id, requested_by, skill_name, category, justification, status, reviewed_by, created_at, reviewed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [request.id, request.requested_by, request.skill_name, request.category, request.justification, request.status, reviewedBy, request.created_at, request.reviewed_at]
+      );
+    }
+    console.log(`Migrated ${skillRequestsRes.rows.length} skill_requests.`);
+    await neonClient.query(`SELECT setval('skill_requests_id_seq', (SELECT COALESCE(MAX(id), 1) FROM skill_requests))`);
+
+    // 22. Notifications
+    const notificationsRes = await localClient.query(`SELECT * FROM notifications ORDER BY id`);
+    for (const notification of notificationsRes.rows) {
+      if (!validUserIds.has(notification.user_id)) continue;
+      await neonClient.query(
+        `INSERT INTO notifications (id, user_id, type, message, related_entity_type, related_entity_id, is_read, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [notification.id, notification.user_id, notification.type, notification.message, notification.related_entity_type, notification.related_entity_id, notification.is_read, notification.created_at]
+      );
+    }
+    console.log(`Migrated ${notificationsRes.rows.length} notifications.`);
+    await neonClient.query(`SELECT setval('notifications_id_seq', (SELECT COALESCE(MAX(id), 1) FROM notifications))`);
+
+    // 23. Assessments
     const assRes = await localClient.query(`SELECT * FROM assessments ORDER BY id`);
     for (const a of assRes.rows) {
       const createdBy = a.created_by && validUserIds.has(a.created_by) ? a.created_by : null;
@@ -700,7 +756,7 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${assRes.rows.length} assessments.`);
     await neonClient.query(`SELECT setval('assessments_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessments))`);
 
-    // 22. Assessment Questions
+    // 24. Assessment Questions
     const aqRes = await localClient.query(`SELECT * FROM assessment_questions ORDER BY id`);
     for (const q of aqRes.rows) {
       await neonClient.query(
@@ -723,7 +779,7 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${aqRes.rows.length} assessment_questions.`);
     await neonClient.query(`SELECT setval('assessment_questions_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_questions))`);
 
-    // 23. Assessment Attempts
+    // 25. Assessment Attempts
     const attRes = await localClient.query(`SELECT * FROM assessment_attempts ORDER BY id`);
     for (const att of attRes.rows) {
       await neonClient.query(
@@ -735,7 +791,7 @@ export const migrateLocalToNeon = async () => {
     console.log(`Migrated ${attRes.rows.length} assessment_attempts.`);
     await neonClient.query(`SELECT setval('assessment_attempts_id_seq', (SELECT COALESCE(MAX(id), 1) FROM assessment_attempts))`);
 
-    // 24. Assessment Answers
+    // 26. Assessment Answers
     const ansRes = await localClient.query(`SELECT * FROM assessment_answers ORDER BY id`);
     for (const ans of ansRes.rows) {
       await neonClient.query(
