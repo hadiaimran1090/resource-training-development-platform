@@ -696,7 +696,6 @@ export const ResourceProfilePage: React.FC = () => {
       <SkillsMatrixSection
         resourceId={profile.id}
         resourceUserId={profile.user_id}
-        resourceRegionId={profile.region_id}
       />
 
       {/* Embedded Security & Password Update Section */}

@@ -67,7 +67,6 @@ export const MySkillsPage: React.FC = () => {
       <SkillsMatrixSection
         resourceId={profile.id}
         resourceUserId={profile.user_id}
-        resourceRegionId={profile.region_id}
       />
     </div>
   );

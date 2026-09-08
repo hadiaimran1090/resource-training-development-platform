@@ -29,7 +29,7 @@ export const RegionalLeadResourceDetailPage: React.FC = () => {
         <div><h1 className="text-xl font-extrabold text-slate-900">{resource.user_name}</h1><p className="text-xs text-slate-500">{resource.employee_id} · {resource.user_email}</p>
           <div className="flex gap-3 mt-2 text-xs text-slate-600"><span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{resource.designation}</span><span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{resource.region_name || 'No region'}</span></div></div>
       </div>
-      <SkillsMatrixSection resourceId={resource.id} resourceUserId={resource.user_id} resourceRegionId={resource.region_id} />
+      <SkillsMatrixSection resourceId={resource.id} resourceUserId={resource.user_id} />
     </div>
   );
 };

@@ -19,7 +19,6 @@ import {
 interface SkillsMatrixSectionProps {
   resourceId: number;
   resourceUserId: number;
-  resourceRegionId?: number | null;
 }
 
 export const SkillsMatrixSection: React.FC<SkillsMatrixSectionProps> = ({

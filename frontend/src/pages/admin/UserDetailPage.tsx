@@ -405,9 +405,7 @@ export const UserDetailPage: React.FC = () => {
       <SkillsMatrixSection
         resourceId={user.id}
         resourceUserId={user.id}
-        resourceRegionId={user.regionId}
       />
     </div>
   );
 };
-
