@@ -18,10 +18,7 @@ import {
   AlertCircle,
   Loader2,
   Search,
-  Filter,
-  User,
   Calendar,
-  Layers,
   ShieldAlert,
   Trash2,
 } from 'lucide-react';

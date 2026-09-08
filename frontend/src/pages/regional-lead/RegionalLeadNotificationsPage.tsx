@@ -8,7 +8,6 @@ import {
   Target,
   Award,
   Info,
-  Clock,
 } from 'lucide-react';
 import { notificationApi, type Notification } from '../../api/notificationApi';
 import { skillApi, type SkillRequest } from '../../api/skillApi';

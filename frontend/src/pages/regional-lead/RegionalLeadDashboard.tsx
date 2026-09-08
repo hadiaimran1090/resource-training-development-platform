@@ -16,8 +16,6 @@ import {
   BookOpen,
   ArrowRight,
   Target,
-  CheckCircle2,
-  XCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,

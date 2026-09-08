@@ -6,7 +6,7 @@ import type { DevelopmentPlan } from '../../api/developmentPlanApi';
 import { getReadinessScoreHistory, recalculateReadinessScore } from '../../api/readinessScoreApi';
 import type { ReadinessScore } from '../../api/readinessScoreApi';
 import { ReadinessScoreCard } from '../../components/readiness/ReadinessScoreCard';
-import { Target, Calendar, CheckCircle2, Clock, AlertTriangle, Layers, BookOpen, ShieldCheck, Loader2, Info } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, Clock, AlertTriangle, Layers, BookOpen, ShieldCheck } from 'lucide-react';
 
 export const MyDevelopmentPlanPage: React.FC = () => {
   const { user } = useAuth();
@@ -15,7 +15,6 @@ export const MyDevelopmentPlanPage: React.FC = () => {
   const [readinessScore, setReadinessScore] = useState<ReadinessScore | null>(null);
   const [readinessHistory, setReadinessHistory] = useState<ReadinessScore[]>([]);
   const [resolvedResourceId, setResolvedResourceId] = useState<number | null>(user?.resourceId || null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -23,7 +22,6 @@ export const MyDevelopmentPlanPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      setLoading(true);
       let resId = user?.resourceId;
       if (!resId) {
         const profile = await resourceApi.getMyProfile();
@@ -58,8 +56,6 @@ export const MyDevelopmentPlanPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to load my development plan:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
