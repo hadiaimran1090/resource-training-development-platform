@@ -174,7 +174,6 @@ const adminSidebar: NavSection[] = [
   {
     title: 'System Control',
     items: [
-      { name: 'Coding Challenges', path: '/admin/coding-challenges', icon: Code },
       { name: 'System Settings', path: '/admin/dashboard#settings', icon: Settings },
       { name: 'Audit Log', path: '/admin/audit-log', icon: History },
     ],

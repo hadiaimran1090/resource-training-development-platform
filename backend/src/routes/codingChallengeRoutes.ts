@@ -23,15 +23,19 @@ router.use(authenticateToken);
 // ==========================================
 
 // List all challenges (filterable by language, difficulty_level, target_role_profile_id)
-router.get('/coding-challenges', getCodingChallenges);
+router.get(
+  '/coding-challenges',
+  requireRoles('Resource', 'Regional Lead', 'Training Manager'),
+  getCodingChallenges
+);
 
 // Detail view for attempt (Resource facing: strips expected_output)
-router.get('/coding-challenges/:id/attempt', getChallengeForAttempt);
+router.get('/coding-challenges/:id/attempt', requireRoles('Resource'), getChallengeForAttempt);
 
-// Full detail view with test cases (Regional Lead, Training Manager, Admin, Mentor)
+// Full detail view with test cases (challenge managers only)
 router.get(
   '/coding-challenges/:id',
-  requireRoles('Regional Lead', 'Training Manager', 'System Administrator', 'Admin', 'Mentor'),
+  requireRoles('Regional Lead', 'Training Manager'),
   getCodingChallengeById
 );
 
@@ -58,24 +62,24 @@ router.delete(
 // 2. SUBMISSIONS & REVIEW QUEUE
 // ==========================================
 
-// Resource submits code answer
-router.post('/coding-challenges/:id/submissions', submitCodingChallenge);
+// Resources can only submit their own code.
+router.post('/coding-challenges/:id/submissions', requireRoles('Resource'), submitCodingChallenge);
 
-// List submission history for a resource
-router.get('/resources/:resourceId/coding-submissions', getResourceSubmissions);
-router.get('/coding-submissions/my-submissions', getResourceSubmissions);
+// Resources can only access their own submission history.
+router.get('/resources/:resourceId/coding-submissions', requireRoles('Resource'), getResourceSubmissions);
+router.get('/coding-submissions/my-submissions', requireRoles('Resource'), getResourceSubmissions);
 
 // Mentor Review Queue: list submissions pending review
 router.get(
   '/coding-submissions/review-queue',
-  requireRoles('Mentor', 'Regional Lead', 'Training Manager', 'System Administrator', 'Admin'),
+  requireRoles('Mentor'),
   getPendingReviewSubmissions
 );
 
 // Review & grade submission
 router.put(
   '/coding-submissions/:id/review',
-  requireRoles('Mentor', 'Regional Lead', 'Training Manager', 'System Administrator', 'Admin'),
+  requireRoles('Mentor'),
   reviewSubmission
 );
 

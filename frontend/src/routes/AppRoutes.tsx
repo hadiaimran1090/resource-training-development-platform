@@ -298,7 +298,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/training-manager/coding-challenges"
           element={
-            <RequireRole allowedRoles={['Training Manager', 'Regional Lead', 'System Administrator']}>
+            <RequireRole allowedRoles={['Training Manager', 'Regional Lead']}>
               <CodingChallengeCatalogPage />
             </RequireRole>
           }
@@ -306,15 +306,7 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/regional-lead/coding-challenges"
           element={
-            <RequireRole allowedRoles={['Regional Lead', 'Training Manager', 'System Administrator']}>
-              <CodingChallengeCatalogPage />
-            </RequireRole>
-          }
-        />
-        <Route
-          path="/admin/coding-challenges"
-          element={
-            <RequireRole allowedRoles={['System Administrator', 'Training Manager', 'Regional Lead']}>
+            <RequireRole allowedRoles={['Regional Lead', 'Training Manager']}>
               <CodingChallengeCatalogPage />
             </RequireRole>
           }
@@ -322,16 +314,23 @@ const ProtectedLayout: React.FC = () => {
         <Route
           path="/resource/coding-challenges"
           element={
-            <RequireRole allowedRoles={['Resource', 'System Administrator', 'Regional Lead']}>
+            <RequireRole allowedRoles={['Resource']}>
               <ResourceCodingChallengesPage />
             </RequireRole>
           }
         />
-        <Route path="/coding-challenges" element={<ResourceCodingChallengesPage />} />
+        <Route
+          path="/coding-challenges"
+          element={
+            <RequireRole allowedRoles={['Resource']}>
+              <ResourceCodingChallengesPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="/mentor/coding-reviews"
           element={
-            <RequireRole allowedRoles={['Mentor', 'Regional Lead', 'Training Manager', 'System Administrator']}>
+            <RequireRole allowedRoles={['Mentor']}>
               <MentorCodingReviewPage />
             </RequireRole>
           }

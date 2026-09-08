@@ -52,9 +52,16 @@ export const getCodingChallenges = async (req: AuthenticatedRequest, res: Respon
 
     const result = await pool.query(query, params);
 
+    const isChallengeManager = (req.user?.roles || []).some((role) =>
+      ['Regional Lead', 'Training Manager'].includes(role)
+    );
+    const challenges = isChallengeManager
+      ? result.rows
+      : result.rows.map(({ test_cases, ...challenge }) => challenge);
+
     res.status(200).json({
       success: true,
-      data: result.rows,
+      data: challenges,
     });
   } catch (error: any) {
     console.error('Error fetching coding challenges:', error);
@@ -458,6 +465,15 @@ export const getResourceSubmissions = async (req: AuthenticatedRequest, res: Res
         return;
       }
       resourceId = resResult.rows[0].id;
+    } else {
+      const ownResource = await pool.query(`SELECT id FROM resources WHERE id = $1 AND user_id = $2`, [
+        resourceId,
+        req.user?.userId,
+      ]);
+      if (ownResource.rows.length === 0) {
+        res.status(403).json({ success: false, message: 'You can only view your own submission history.' });
+        return;
+      }
     }
 
     const query = `
